@@ -9,11 +9,11 @@ This feature is currently experimental, and you must opt in by adding the `exper
 ```js
 /// file: svelte.config.js
 export default {
-	compilerOptions: {
-		experimental: {
-			async: true
-		}
-	}
+    compilerOptions: {
+        experimental: {
+            async: true
+        }
+    }
 };
 ```
 
@@ -28,13 +28,13 @@ When an `await` expression depends on a particular piece of state, changes to th
 ```svelte
 <!--- file: App.svelte --->
 <script>
-	let a = $state(1);
-	let b = $state(2);
+    let a = $state(1);
+    let b = $state(2);
 
-	async function add(a, b) {
-		await new Promise((f) => setTimeout(f, 500)); // artificial delay
-		return a + b;
-	}
+    async function add(a, b) {
+        await new Promise((f) => setTimeout(f, 500)); // artificial delay
+        return a + b;
+    }
 </script>
 
 <input type="number" bind:value={a} />
@@ -86,24 +86,24 @@ After the contents of a boundary have resolved for the first time and have repla
 You can also use [`settled()`](https://svelte.dev/docs/svelte/svelte/llms.txt#settled) to get a promise that resolves when the current update is complete:
 
 ```js
-import { tick, settled } from 'svelte';
+import { settled, tick } from 'svelte';
 
 async function onclick() {
-	updating = true;
+    updating = true;
 
-	// without this, the change to `updating` will be
-	// grouped with the other changes, meaning it
-	// won't be reflected in the UI
-	await tick();
+    // without this, the change to `updating` will be
+    // grouped with the other changes, meaning it
+    // won't be reflected in the UI
+    await tick();
 
-	color = 'octarine';
-	answer = 42;
+    color = 'octarine';
+    answer = 42;
 
-	await settled();
+    await settled();
 
-	// any updates affected by `color` or `answer`
-	// have now been applied
-	updating = false;
+    // any updates affected by `color` or `answer`
+    // have now been applied
+    updating = false;
 }
 ```
 
@@ -135,45 +135,46 @@ The [`fork(...)`](https://svelte.dev/docs/svelte/svelte/llms.txt#fork) API, adde
 
 ```svelte
 <script>
-	import { fork } from 'svelte';
-	import Menu from './Menu.svelte';
+    import { fork } from 'svelte';
 
-	let open = $state(false);
+    import Menu from './Menu.svelte';
 
-	/** @type {import('svelte').Fork | null} */
-	let pending = null;
+    let open = $state(false);
 
-	function preload() {
-		pending ??= fork(() => {
-			open = true;
-		});
-	}
+    /** @type {import('svelte').Fork | null} */
+    let pending = null;
 
-	function discard() {
-		pending?.discard();
-		pending = null;
-	}
+    function preload() {
+        pending ??= fork(() => {
+            open = true;
+        });
+    }
+
+    function discard() {
+        pending?.discard();
+        pending = null;
+    }
 </script>
 
 <button
-	onfocusin={preload}
-	onfocusout={discard}
-	onpointerenter={preload}
-	onpointerleave={discard}
-	onclick={() => {
-		pending?.commit();
-		pending = null;
+    onfocusin={preload}
+    onfocusout={discard}
+    onpointerenter={preload}
+    onpointerleave={discard}
+    onclick={() => {
+        pending?.commit();
+        pending = null;
 
-		// in case `pending` didn't exist
-		// (if it did, this is a no-op)
-		open = true;
-	}}>open menu</button
+        // in case `pending` didn't exist
+        // (if it did, this is a no-op)
+        open = true;
+    }}>open menu</button
 >
 
 {#if open}
-	<!-- any async work inside this component will start
+    <!-- any async work inside this component will start
 	     as soon as the fork is created -->
-	<Menu onclose={() => (open = false)} />
+    <Menu onclose={() => (open = false)} />
 {/if}
 ```
 
