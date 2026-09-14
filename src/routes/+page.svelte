@@ -4,6 +4,7 @@
 
     import EmptyState from '$lib/components/empty/EmptyState.svelte';
     import SheetGrid from '$lib/components/grid/SheetGrid.svelte';
+    import LanguageConfirmation from '$lib/components/languages/LanguageConfirmation.svelte';
     import SheetLoading from '$lib/components/sheet/SheetLoading.svelte';
     import SheetTabs from '$lib/components/shell/SheetTabs.svelte';
     import StatusBar from '$lib/components/shell/StatusBar.svelte';
@@ -133,6 +134,16 @@
             </EmptyState>
         {:else if active.phase.kind === 'parsing'}
             <SheetLoading name={active.name} progress={active.phase.progress} />
+        {:else if active.phase.kind === 'confirming'}
+            {@const sheet = active}
+            {#key sheet.id}
+                <LanguageConfirmation
+                    headers={sheet.rows[0]}
+                    guess={active.phase.guess}
+                    onconfirm={(languages) => sheet.confirmLanguages(languages)}
+                    oncancel={() => workbook.close(sheet.id)}
+                />
+            {/key}
         {:else}
             {#key active.id}
                 <SheetGrid rows={active.rows} />
@@ -150,7 +161,9 @@
     />
 
     <StatusBar
-        rowCount={active?.phase.kind === 'ready' ? active.rows.length : null}
+        rowCount={active && active.phase.kind !== 'parsing'
+            ? active.rows.length
+            : null}
     />
 </div>
 

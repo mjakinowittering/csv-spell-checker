@@ -49,7 +49,7 @@ async function load(
     workbook.open(sheet);
 
     try {
-        const rows = await parseInWorker(source, (progress) => {
+        const { rows, guess } = await parseInWorker(source, (progress) => {
             sheet.phase = { kind: 'parsing', progress };
         });
 
@@ -60,7 +60,8 @@ async function load(
         }
 
         sheet.rows = rows;
-        sheet.phase = { kind: 'ready' };
+        // Always ask: no sheet skips language confirmation.
+        sheet.phase = { kind: 'confirming', guess };
     } catch (error) {
         console.error('Could not parse', displayName, error);
         workbook.close(sheet.id);

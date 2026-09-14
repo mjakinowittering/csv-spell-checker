@@ -50,5 +50,13 @@
     "languages_de": "German",
     "languages_it": "Italian",
     "languages_es": "Spanish",
-    "languages_none": "None (ignore)"
+    "languages_none": "None (ignore)",
+    "languages_confirm_title": "Confirm languages for each column before we check spelling",
+    "languages_column_label": "Column {letter}",
+    "languages_column_header": "“{name}”",
+    "languages_select_label": "Language for column {letter}",
+    "languages_low_confidence_badge": "Low",
+    "languages_low_confidence_legend": "Low-confidence guess, please double-check",
+    "languages_cancel_action": "Cancel",
+    "languages_continue_action": "Continue"
 }
