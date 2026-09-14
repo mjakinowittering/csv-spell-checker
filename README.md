@@ -34,8 +34,8 @@ _No open bugs._
 
 #### Shell
 
-- [ ] **App shell** — toolbar (app icon, undo/redo, spelling-issues counter with next/previous, download, upload), closable sheet tabs with a plus button above a row-count status bar, and OS-default theme with a manual toggle.
-- [ ] **First-run empty state** — explains the app's purpose, shows the upload → grid → flagged errors flow, and lists the supported languages as chips.
+- [x] **App shell** — toolbar (app icon, undo/redo, spelling-issues counter with next/previous, download, upload), closable sheet tabs with a plus button above a row-count status bar, and OS-default theme with a manual toggle.
+- [x] **First-run empty state** — explains the app's purpose, shows the upload → grid → flagged errors flow, and lists the supported languages as chips.
 
 #### Import
 

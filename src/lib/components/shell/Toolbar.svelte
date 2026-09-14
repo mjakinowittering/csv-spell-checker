@@ -43,7 +43,7 @@
 
 <header
     aria-label={m.toolbar_label()}
-    class="bg-background flex h-12 shrink-0 items-center gap-2 border-b px-3"
+    class="bg-background flex h-12 shrink-0 items-center gap-1 border-b px-2 sm:gap-2 sm:px-3"
 >
     <div class="flex items-center gap-2">
         <div
@@ -58,7 +58,7 @@
 
     <Separator
         orientation="vertical"
-        class="mx-1 data-vertical:h-5 data-vertical:self-center"
+        class="mx-1 data-vertical:h-5 data-vertical:self-center max-sm:hidden"
     />
 
     <ButtonGroup.Root>
@@ -78,7 +78,7 @@
 
     <Separator
         orientation="vertical"
-        class="mx-1 data-vertical:h-5 data-vertical:self-center"
+        class="mx-1 data-vertical:h-5 data-vertical:self-center max-sm:hidden"
     />
 
     <div class="flex items-center gap-1">
@@ -117,7 +117,7 @@
         />
         <Separator
             orientation="vertical"
-            class="mx-1 data-vertical:h-5 data-vertical:self-center"
+            class="mx-1 data-vertical:h-5 data-vertical:self-center max-sm:hidden"
         />
         <ThemeToggle />
     </div>

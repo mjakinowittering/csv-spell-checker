@@ -1,4 +1,5 @@
 <script lang="ts">
+    import EmptyState from '$lib/components/empty/EmptyState.svelte';
     import SheetTabs from '$lib/components/shell/SheetTabs.svelte';
     import StatusBar from '$lib/components/shell/StatusBar.svelte';
     import Toolbar from '$lib/components/shell/Toolbar.svelte';
@@ -16,7 +17,11 @@
         canRedo={false}
     />
 
-    <main class="min-h-0 flex-1 overflow-hidden"></main>
+    <main class="min-h-0 flex-1 overflow-hidden">
+        {#if workbook.sheets.length === 0}
+            <EmptyState />
+        {/if}
+    </main>
 
     <SheetTabs
         sheets={workbook.sheets}
