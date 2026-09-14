@@ -1,15 +1,23 @@
-import type { Sheet } from './sheet';
+import type { Sheet } from './sheet.svelte';
 
 /** The set of open sheets and which one is showing. */
 export class Workbook {
-    // Sheets can hold tens of thousands of cells; they are replaced, never
-    // mutated in place, so a raw array avoids proxying every row.
+    // The array is replaced on open/close, never mutated, so it stays raw;
+    // each Sheet carries its own fine-grained state.
     sheets = $state.raw<Sheet[]>([]);
     activeId = $state<string | null>(null);
 
     active = $derived(
         this.sheets.find((sheet) => sheet.id === this.activeId) ?? null
     );
+
+    #uploadCount = 0;
+
+    /** The next "Sheet N" number. Never reused, even after tabs close. */
+    nextUploadNumber(): number {
+        this.#uploadCount += 1;
+        return this.#uploadCount;
+    }
 
     open(sheet: Sheet) {
         this.sheets = [...this.sheets, sheet];

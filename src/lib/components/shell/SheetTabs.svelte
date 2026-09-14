@@ -6,9 +6,10 @@
 
     import { Button } from '$lib/components/ui/button';
     import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
+    import { Spinner } from '$lib/components/ui/spinner';
 
     import { m } from '$lib/paraglide/messages';
-    import type { Sheet } from '$lib/workbook/sheet';
+    import type { Sheet } from '$lib/workbook/sheet.svelte';
 
     let {
         sheets,
@@ -54,6 +55,13 @@
                     class="max-w-48 hover:bg-transparent"
                     onclick={() => onactivate(sheet.id)}
                 >
+                    {#if sheet.phase.kind === 'parsing'}
+                        <Spinner
+                            stroke="currentColor"
+                            class="size-3.5"
+                            aria-label={m.tabs_parsing_label()}
+                        />
+                    {/if}
                     <span class="truncate">{sheet.name}</span>
                 </Button>
                 <Button

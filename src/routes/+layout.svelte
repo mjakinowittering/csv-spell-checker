@@ -3,6 +3,7 @@
 
     import { ModeWatcher } from 'mode-watcher';
 
+    import { Toaster } from '$lib/components/ui/sonner';
     import * as Tooltip from '$lib/components/ui/tooltip';
 
     import favicon from '$lib/assets/favicon.svg';
@@ -21,3 +22,5 @@
 <Tooltip.Provider>
     {@render children()}
 </Tooltip.Provider>
+
+<Toaster />

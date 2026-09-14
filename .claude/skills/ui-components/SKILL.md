@@ -73,11 +73,22 @@ Some Vega components style by data attribute, e.g. Separator uses
 same variant, so a plain `self-center` does not win. Override with the same
 variant: `class="data-vertical:h-5 data-vertical:self-center"`.
 
+### Spinner needs an explicit stroke
+
+The generated `Spinner` forwards `stroke={undefined}` to lucide's icon, which
+removes lucide's default `stroke="currentColor"` — the spinner renders but is
+invisible. Always pass it: `<Spinner stroke="currentColor" class="size-4" />`.
+
 ### File pickers
 
 A file picker still goes through shadcn: a visually hidden `Input type="file"`
 opened from a `Button` via its `ref`. Drag-and-drop targets are plain containers
 with drop handlers, not form elements.
+
+The `Input` binds `value` on the file input. To reset it (so choosing the same
+file again fires `change`), bind your own state with `bind:value` and set that
+to `''`. Assigning `input.value = ''` directly makes the binding write the old
+fake path back, which the browser rejects with an exception.
 
 ## Prop ordering in `$props()`
 

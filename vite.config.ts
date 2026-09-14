@@ -45,6 +45,10 @@ export default defineConfig({
             emitTsDeclarations: true
         })
     ],
+    // Parse and spellcheck workers are ES modules with their own imports.
+    worker: {
+        format: 'es'
+    },
     test: {
         expect: {
             requireAssertions: true
