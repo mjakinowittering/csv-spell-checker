@@ -1,42 +1,56 @@
-# sv
+# CSV Spell Checker
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+A browser-based PWA for uploading or pasting CSV data and spell-checking it.
+Native browser spellcheck works while you edit a cell. A background Hunspell
+check flags misspellings across the whole sheet at rest. CSV only.
 
-## Creating a project
-
-If you're seeing this, you've probably already done this step. Congrats!
-
-```sh
-# create a new project
-npx sv create my-app
-```
-
-To recreate this project with the same configuration:
-
-```sh
-# recreate this project
-npx sv@0.17.0 create --template minimal --types ts --add prettier eslint vitest="usages:unit,component" tailwindcss="plugins:none" paraglide="languageTags:en+demo:no" storybook ai-tools="ide:vscode,claude-code+delivery:tools+tools:mcp,svelte-code-writer,svelte-core-bestpractices,svelte-file-editor+mcpSetup:remote" --install npm csv-spell-checker
-```
+Supported languages: English (UK), English (US), French, German, Italian,
+Spanish.
 
 ## Developing
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
-
 ```sh
+npm install
 npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
 ```
 
-## Building
+| Script          | Does                         |
+| --------------- | ---------------------------- |
+| `npm run dev`   | Start the dev server         |
+| `npm run build` | Build the static site        |
+| `npm run check` | Type-check with svelte-check |
+| `npm run lint`  | Prettier and ESLint          |
+| `npm run test`  | Run the Vitest suites once   |
 
-To create a production version of your app:
+Deployed as a static SPA to GitHub Pages.
 
-```sh
-npm run build
-```
+## Todo
 
-You can preview the production build with `npm run preview`.
+### Bugs
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+_No open bugs._
+
+### Features
+
+#### Shell
+
+- [ ] **App shell** — toolbar (app icon, undo/redo, spelling-issues counter with next/previous, download, upload), closable sheet tabs with a plus button above a row-count status bar, and OS-default theme with a manual toggle.
+- [ ] **First-run empty state** — explains the app's purpose, shows the upload → grid → flagged errors flow, and lists the supported languages as chips.
+
+#### Import
+
+- [ ] **CSV upload and paste** — drag-drop or browse a CSV, or paste tab-separated content; each opens a new "Sheet N" or "Pasted sheet" tab with a bold frozen header row and a parsing progress indicator.
+- [ ] **Language detection and confirmation** — Franc samples the first 10 non-header rows for one sheet-wide guess that pre-fills a per-column language screen, with low-confidence warnings, shown for every new sheet.
+
+#### Grid
+
+- [ ] **Spreadsheet grid and cell editor** — SVAR data grid with lettered columns and numbered rows, read-only cells that open a spellcheck-enabled modal editor, a permanent tint on edited cells, and undo/redo.
+
+#### Spellcheck
+
+- [ ] **Spellcheck worker** — a Web Worker checks every non-ignored column with Typo.js Hunspell dictionaries, flags cells with a squiggly underline and ring, and re-checks only the edited cell after a change.
+- [ ] **Spelling-issue navigation** — the toolbar counter shows the issue count and next/previous jumps between flagged cells.
+
+#### Export
+
+- [ ] **CSV export** — the download button saves the active sheet as a CSV file.
