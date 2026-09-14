@@ -1,98 +1,86 @@
 ---
 name: i18n-messages
-description: Authoring Paraglide message keys in `messages/en.json` with copy whose length and register match the existing sibling strings. Load when adding or editing a UI string, naming a message key, or generating label/title/hint/error/description text. English is the only locale; recompile Paraglide after adding keys.
+description: Authoring Paraglide message keys in `messages/en.json` — key prefixes for this app's areas, suffix families and their length register, parameters, and the recompile step. Load when adding or editing any UI string, naming a message key, or writing label/hint/title/description/error copy. English is the only locale.
 ---
 
-# Paraglide messages — length-matched authoring
+# Paraglide messages
 
-All UI copy goes through Paraglide (see CLAUDE.md — never hardcode English in a
-component or route, error text included). The value here is **not** translation:
-the app ships English only, `locales: ["en"]`, no locale switcher and no second
-file. It is keeping copy out of the markup, in one place, editable without
-touching components.
+All UI copy lives in `messages/en.json` and is rendered through
+`m.<key>()` from `$lib/paraglide/messages`. The point is not translation — the app
+ships English only (`locales: ["en"]`, no switcher) — it is keeping copy out of
+markup, in one place, consistent in tone and length.
 
-This skill is the **how** for writing a _good_ message: one whose length and tone
-match the strings already in the file, so the UI stays visually consistent.
+Error text and toast text go through messages too. Language names shown in the
+UI are messages; the language _codes_ are not.
 
-Read the copy voice from CLAUDE.md first: the user is a writer, not an operator.
-"Couldn't save — check the folder is still available", never "EIO: write failed".
+## Voice
+
+The user is checking the text in a spreadsheet, not operating a spellchecker.
+
+- Plain words: "Checking spelling…", never "Worker busy" or "Hunspell loaded".
+- Never name implementation details in the UI: no "Franc", "Typo.js", "worker",
+  "dictionary file", "TSV".
+- Errors say what happened and what to do, in one sentence, without apology or
+  codes: "This file isn't a CSV. Save it as CSV and upload it again."
 
 ## Key naming
 
-Keys are `snake_case`, namespaced front-to-back:
-`<domain>_<context>_<element>`.
+`snake_case`, `<area>_<context>_<element>`. Reuse an existing prefix; grep before
+inventing a new one.
 
-There are nine domains and **you should be reusing one of them**, not inventing a
-tenth. Grep the file for the prefix before you add a key:
+| prefix        | covers                                                |
+| ------------- | ----------------------------------------------------- |
+| `app_`        | app-wide strings (title)                              |
+| `toolbar_`    | the top toolbar                                       |
+| `theme_`      | the theme toggle                                      |
+| `tabs_`       | the sheet tab strip and its plus menu                 |
+| `status_`     | the status bar                                        |
+| `empty_`      | the first-run empty state                             |
+| `import_`     | upload, drag-drop, paste, parsing progress and errors |
+| `languages_`  | language names and the per-column confirmation screen |
+| `grid_`       | the spreadsheet grid                                  |
+| `editor_`     | the cell edit dialog                                  |
+| `spellcheck_` | background check progress and results                 |
+| `export_`     | CSV download                                          |
 
-| prefix         | covers                                                 |
-| -------------- | ------------------------------------------------------ |
-| `content_`     | the editor surface: formatting, read-aloud, the sheet  |
-| `files_`       | the Files screen: the tree, naming, delete, the folder |
-| `welcome_`     | first run, reopen, the preview                         |
-| `editor_`      | the editor's own errors and chrome                     |
-| `settings_`    | the settings panel                                     |
-| `header_`      | the app header                                         |
-| `footer_`      | the app footer                                         |
-| `unsupported_` | the no-File-System-Access screen                       |
-| `confirm_`     | shared dialog buttons                                  |
+## Suffix families
 
-The **suffix** — the last segment — declares the string's _family_, and the
-family sets the length register.
+The last segment declares the family, and the family sets the length:
 
-## The length rule
+| suffix         | register                                        |
+| -------------- | ----------------------------------------------- |
+| `_hint`        | tooltip: a short noun phrase or verb, 1–3 words |
+| `_label`       | accessible name / field label, 1–3 words        |
+| `_title`       | heading, a few words, no full stop              |
+| `_description` | one or two sentences, ends with a full stop     |
+| `_error`       | one plain sentence saying what to do            |
+| `_action`      | button text, a verb phrase, 1–3 words           |
+| `_count`       | a short phrase with a `{count}` parameter       |
 
-Before writing the value, find the **sibling family**: other keys sharing the
-same suffix, ideally the same domain prefix too. Match their length and tone.
-Measured off the current `en.json`:
-
-| suffix         | n   | register                                | median chars | example                                                                 |
-| -------------- | --- | --------------------------------------- | ------------ | ----------------------------------------------------------------------- |
-| `_hint`        | 19  | tooltip: a noun phrase or short verb    | ~11          | `"Bullet list"`                                                         |
-| `_error`       | 18  | one plain sentence, no apology, no code | ~39          | `"A folder called \"{name}\" already exists"`                           |
-| `_title`       | 16  | short heading, no full stop             | ~16          | `"Nothing here yet"`                                                    |
-| `_description` | 13  | one or two sentences, ends with a stop  | ~67          | `"This removes the empty folder from your disk, and cannot be undone."` |
-| `_label`       | 5   | 1–2 words, an accessible name           | ~13          | `"Document text"`                                                       |
-| `_menu`        | 3   | names the row it acts on                | ~20          | `"Actions for \"{name}\""`                                              |
-| `_placeholder` | 2   | short hint, may be a question           | ~33          | `"What are we going to write today?"`                                   |
-
-`_hint` is the biggest family by some distance — it is every toolbar tooltip — and
-the shortest. A tooltip that runs to a sentence is wrong even if the English is
-fine.
-
-Rule of thumb: **stay within roughly ±50% of the sibling family's median.** A
-`_label` that is a full sentence, or a `_description` that is two words, breaks
-the layout the component was built around.
-
-Where a key has an obvious partner — `files_folder_empty` /
-`files_folder_no_writing`, `settings_read_error` / `settings_save_error` — derive
-the pair from each other so they read as a set.
+Before writing a value, read the siblings that share the suffix (and ideally the
+prefix) and match their length. A tooltip that runs to a sentence, or a
+description that is two words, is wrong even if the English is fine.
 
 ## Parameters
 
-Interpolate with `{name}` (Paraglide message-format syntax), matching the
-surrounding keys:
+Interpolate with `{name}`:
 
 ```json
-"files_delete_title": "Delete \"{title}\"?",
-"files_modified": "Edited {when}",
-"content_format_heading": "Heading {level}"
+"tabs_close_label": "Close {name}",
+"status_rows": "Rows: {count}"
 ```
 
-A parameter carries a value the app already has. It is **not** a way to smuggle
-English out of a component and into a message: building `"3 minutes"` in a util
-and interpolating it defeats the point of the message file. Pass the parts and
-let the key own the words.
+A parameter carries a value the app already has (a name, a number). Do not build
+English phrases in code and interpolate them — pass the parts, let the key own the
+words.
 
 ## Workflow
 
-1. `grep` `messages/en.json` for the domain prefix and the suffix family to see
-   the siblings you are matching.
-2. Match the naming pattern and the length register.
-3. Add the key near its domain neighbours. English only — there is no other
-   locale file to update.
-4. Recompile before type-checking:
+1. Grep `messages/en.json` for the prefix and suffix family.
+2. Add the key beside its prefix neighbours.
+3. Recompile before type-checking (svelte-check does not run the Vite plugin):
    `npx paraglide-js compile --project ./project.inlang --outdir ./src/lib/paraglide`
-5. Reference it as `m.<key>()` — never a raw string.
-6. **A key nothing references is deleted**, in the same commit as whatever
-   stopped using it.
+4. Reference it as `m.<key>()` — never a raw string in markup.
+5. A key nothing references is deleted in the same commit that stopped using it.
+
+`src/lib/paraglide/` is generated and gitignored; CI compiles it before checking.
