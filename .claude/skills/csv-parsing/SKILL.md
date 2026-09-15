@@ -60,3 +60,22 @@ always creates a new sheet** — never merges into or targets existing cells.
   displayed as a bold frozen first row.
 
 Every rule above has a case in `parse.test.ts`; add one with any change.
+
+## Export
+
+The toolbar's download button exports the active sheet:
+`serializeCsv(sheet.snapshot())` in `src/lib/csv/serialize.ts`, saved by
+`downloadCsv` in `src/lib/csv/download.ts`.
+
+- Always comma separated with CRLF line endings, whatever delimiter the upload
+  used. Fields are quoted only when they contain a comma, quote or line break, or
+  start or end with whitespace; embedded quotes are doubled.
+- The file starts with a UTF-8 byte-order mark so Excel reads accented letters
+  correctly. The parser drops it again on re-upload.
+- `snapshot()` applies every edit; the parsed `rows` are never mutated.
+- Uploads keep their original file name (`Sheet.sourceFileName`); pasted sheets
+  use the tab name with file-system-unsafe characters (the time's colons)
+  replaced.
+- Round trip: parsing the export gives back the same cells. The one exception is
+  a trailing row whose cells are all empty, which the parser drops as a blank
+  line. `serialize.test.ts` covers the round trip.

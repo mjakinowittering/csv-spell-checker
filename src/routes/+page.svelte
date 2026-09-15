@@ -14,6 +14,8 @@
     import { Button } from '$lib/components/ui/button';
     import { Input } from '$lib/components/ui/input';
 
+    import { csvFileName, downloadCsv } from '$lib/csv/download';
+    import { serializeCsv } from '$lib/csv/serialize';
     import { languageLabel } from '$lib/languages/labels';
     import { m } from '$lib/paraglide/messages';
     import {
@@ -28,6 +30,14 @@
     type EditTarget = { sheet: Sheet; row: number; column: number };
 
     const workbook = new Workbook();
+
+    /** Download a sheet's current values, edits included, as CSV. */
+    function exportSheet(sheet: Sheet) {
+        downloadCsv(
+            csvFileName(sheet.sourceFileName ?? sheet.name),
+            serializeCsv(sheet.snapshot())
+        );
+    }
 
     // Resolved lazily: the page is prerendered, where `location` is undefined.
     const spellchecker = new Spellchecker(
@@ -209,6 +219,9 @@
         onredo={redo}
         onpreviousissue={() => goToIssue('previous')}
         onnextissue={() => goToIssue('next')}
+        ondownload={() => {
+            if (ready) exportSheet(ready);
+        }}
         onupload={openFilePicker}
     />
 

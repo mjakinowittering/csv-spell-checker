@@ -30,6 +30,8 @@ function parseCellKey(key: string): CellPosition {
 export class Sheet {
     readonly id = crypto.randomUUID();
     readonly name: string;
+    /** The uploaded file's name, reused for export. Null for pasted sheets. */
+    readonly sourceFileName: string | null;
 
     phase = $state<SheetPhase>({ kind: 'parsing', progress: 0 });
 
@@ -71,8 +73,9 @@ export class Sheet {
     // eslint-disable-next-line svelte/prefer-svelte-reactivity
     #changedDuringCheck = new Set<string>();
 
-    constructor(name: string) {
+    constructor(name: string, sourceFileName: string | null = null) {
         this.name = name;
+        this.sourceFileName = sourceFileName;
     }
 
     /**

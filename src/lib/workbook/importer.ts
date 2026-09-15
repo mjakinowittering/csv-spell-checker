@@ -21,7 +21,8 @@ export function importFiles(workbook: Workbook, files: Iterable<File>) {
             continue;
         }
         const sheet = new Sheet(
-            m.tabs_upload_name({ number: workbook.nextUploadNumber() })
+            m.tabs_upload_name({ number: workbook.nextUploadNumber() }),
+            file.name
         );
         void load(workbook, sheet, { kind: 'file', file }, file.name);
     }

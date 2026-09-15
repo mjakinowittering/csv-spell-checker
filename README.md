@@ -71,4 +71,4 @@ _No open bugs._
 
 #### Export
 
-- [ ] **CSV export** — the download button saves the active sheet as a CSV file.
+- [x] **CSV export** — the download button saves the active sheet as a CSV file.
