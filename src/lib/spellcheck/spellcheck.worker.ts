@@ -1,4 +1,4 @@
-import Typo from 'typo-js';
+import { createHunspellFromStrings } from 'hunspell-wasm';
 
 import { isLanguageCode, type LanguageCode } from '$lib/languages/codes';
 
@@ -35,12 +35,14 @@ function loadChecker(language: LanguageCode): Promise<WordCheck> {
             fetchText(url('index.aff')),
             fetchText(url('index.dic'))
         ]);
-        const typo = new Typo(language, aff, dic);
+        // Hunspell compiled to WebAssembly: loads even the largest dictionaries
+        // (Italian, Polish, Czech) in well under a second.
+        const hunspell = await createHunspellFromStrings(aff, dic);
         const memo = new Map<string, boolean>();
         return (word) => {
             let correct = memo.get(word);
             if (correct === undefined) {
-                correct = typo.check(word);
+                correct = hunspell.testSpelling(word);
                 memo.set(word, correct);
             }
             return correct;

@@ -38,7 +38,7 @@
     args={{
         value: 'unsupported',
         options: [...options, 'unsupported'],
-        detected: 'pl'
+        detected: 'hu'
     }}
 />
 

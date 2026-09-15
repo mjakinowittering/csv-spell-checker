@@ -70,6 +70,17 @@ export function englishVariantFor(
     return english?.toLowerCase() === 'en-us' ? 'en-US' : 'en-GB';
 }
 
+/**
+ * Detectors cannot tell European from Brazilian Portuguese either: Brazilian
+ * only for a pt-BR browser preference, otherwise European.
+ */
+export function portugueseVariantFor(
+    locales: readonly string[]
+): Extract<LanguageCode, 'pt-PT' | 'pt-BR'> {
+    const portuguese = locales.find((locale) => /^pt\b/i.test(locale));
+    return portuguese?.toLowerCase() === 'pt-br' ? 'pt-BR' : 'pt-PT';
+}
+
 /** The supported language for a detected BCP 47 code, if there is one. */
 export function toSupportedLanguage(
     detected: string,
@@ -79,9 +90,21 @@ export function toSupportedLanguage(
     switch (base) {
         case 'en':
             return englishVariantFor(locales);
+        case 'pt':
+            return portugueseVariantFor(locales);
+        // Norwegian is checked as Bokmål, the written standard most use.
+        case 'no':
+        case 'nb':
+            return 'nb';
         case 'fr':
         case 'de':
+        case 'it':
         case 'es':
+        case 'nl':
+        case 'pl':
+        case 'sv':
+        case 'da':
+        case 'cs':
             return base;
         default:
             return null;

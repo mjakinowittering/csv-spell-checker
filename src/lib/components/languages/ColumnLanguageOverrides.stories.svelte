@@ -29,6 +29,6 @@
     args={{
         languages: ['unsupported', 'unsupported', 'de', 'unsupported'],
         options: [...options, 'unsupported'],
-        detected: 'pl'
+        detected: 'hu'
     }}
 />

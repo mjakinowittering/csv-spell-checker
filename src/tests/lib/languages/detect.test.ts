@@ -5,6 +5,7 @@ import {
     detectSheetLanguage,
     englishVariantFor,
     guessFromRanking,
+    portugueseVariantFor,
     sampleText,
     toSupportedLanguage
 } from '$lib/languages/detect';
@@ -17,7 +18,8 @@ const long = {
     fr: 'Chaise en chêne confortable avec accoudoirs. Livraison prévue vendredi. Le client a demandé un remboursement car la table est arrivée abîmée.',
     de: 'Bequemer Eichenstuhl mit Armlehnen. Lieferung am Freitag erwartet. Der Kunde bat um Rückerstattung, weil der Tisch beschädigt ankam.',
     es: 'Silla de roble cómoda con reposabrazos. Entrega prevista el viernes. El cliente pidió un reembolso porque la mesa llegó dañada.',
-    pl: 'Wygodne dębowe krzesło z podłokietnikami. Dostawa przewidziana na piątek. Klient poprosił o zwrot pieniędzy, ponieważ stół dotarł uszkodzony.'
+    pl: 'Wygodne dębowe krzesło z podłokietnikami. Dostawa przewidziana na piątek. Klient poprosił o zwrot pieniędzy, ponieważ stół dotarł uszkodzony.',
+    fi: 'Mukava tammituoli käsinojilla. Toimitus odotetaan perjantaina. Asiakas pyysi hyvitystä, koska pöytä saapui vaurioituneena.'
 };
 
 // Forces the Franc path: headless Chromium and Node have no built-in detector.
@@ -86,10 +88,15 @@ describe('Franc fallback', () => {
         expect(guess.prefill).toBeNull();
     });
 
-    it('marks a confidently detected unsupported language as unsupported', async () => {
+    it('confidently detects a newly supported language', async () => {
         const guess = await detectSheetLanguage(sheet([[long.pl, '']]), franc);
+        expect(guess).toMatchObject({ detected: 'pl', prefill: 'pl' });
+    });
+
+    it('marks a confidently detected unsupported language as unsupported', async () => {
+        const guess = await detectSheetLanguage(sheet([[long.fi, '']]), franc);
         expect(guess).toMatchObject({
-            detected: 'pl',
+            detected: 'fi',
             prefill: 'unsupported',
             confident: true
         });
@@ -202,7 +209,29 @@ describe('guessFromRanking', () => {
 describe('toSupportedLanguage', () => {
     it('accepts regional codes by their base language', () => {
         expect(toSupportedLanguage('fr-CA', [])).toBe('fr');
-        expect(toSupportedLanguage('pl', [])).toBeNull();
+        expect(toSupportedLanguage('it', [])).toBe('it');
+        expect(toSupportedLanguage('cs', [])).toBe('cs');
+        expect(toSupportedLanguage('fi', [])).toBeNull();
+    });
+
+    it('checks Norwegian as Bokmål', () => {
+        expect(toSupportedLanguage('no', [])).toBe('nb');
+        expect(toSupportedLanguage('nb', [])).toBe('nb');
+        expect(toSupportedLanguage('nn', [])).toBeNull();
+    });
+
+    it('maps Portuguese to the preferred variant', () => {
+        expect(toSupportedLanguage('pt', ['pt-BR'])).toBe('pt-BR');
+        expect(toSupportedLanguage('pt', ['en-GB'])).toBe('pt-PT');
+    });
+});
+
+describe('portugueseVariantFor', () => {
+    it('picks Brazilian only for a pt-BR preference, otherwise European', () => {
+        expect(portugueseVariantFor(['pt-BR', 'en'])).toBe('pt-BR');
+        expect(portugueseVariantFor(['pt-PT'])).toBe('pt-PT');
+        expect(portugueseVariantFor(['pt'])).toBe('pt-PT');
+        expect(portugueseVariantFor(['fr-FR'])).toBe('pt-PT');
     });
 });
 

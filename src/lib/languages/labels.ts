@@ -7,7 +7,16 @@ export const languageLabel: Record<LanguageCode | 'none', () => string> = {
     'en-US': m.languages_en_us,
     fr: m.languages_fr,
     de: m.languages_de,
+    it: m.languages_it,
     es: m.languages_es,
+    'pt-PT': m.languages_pt_pt,
+    'pt-BR': m.languages_pt_br,
+    nl: m.languages_nl,
+    pl: m.languages_pl,
+    sv: m.languages_sv,
+    da: m.languages_da,
+    nb: m.languages_nb,
+    cs: m.languages_cs,
     none: m.languages_none
 };
 

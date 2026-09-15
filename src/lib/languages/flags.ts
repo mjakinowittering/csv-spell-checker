@@ -6,5 +6,14 @@ export const languageFlag: Record<LanguageCode, string> = {
     'en-US': '🇺🇸',
     fr: '🇫🇷',
     de: '🇩🇪',
-    es: '🇪🇸'
+    it: '🇮🇹',
+    es: '🇪🇸',
+    'pt-PT': '🇵🇹',
+    'pt-BR': '🇧🇷',
+    nl: '🇳🇱',
+    pl: '🇵🇱',
+    sv: '🇸🇪',
+    da: '🇩🇰',
+    nb: '🇳🇴',
+    cs: '🇨🇿'
 };

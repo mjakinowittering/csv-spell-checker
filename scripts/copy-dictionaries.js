@@ -11,7 +11,17 @@ const DICTIONARIES = {
     'en-US': 'dictionary-en',
     fr: 'dictionary-fr',
     de: 'dictionary-de',
-    es: 'dictionary-es'
+    it: 'dictionary-it',
+    es: 'dictionary-es',
+    'pt-PT': 'dictionary-pt-pt',
+    // dictionary-pt is Brazilian Portuguese (dictionary-pt-br is deprecated).
+    'pt-BR': 'dictionary-pt',
+    nl: 'dictionary-nl',
+    pl: 'dictionary-pl',
+    sv: 'dictionary-sv',
+    da: 'dictionary-da',
+    nb: 'dictionary-nb',
+    cs: 'dictionary-cs'
 };
 
 for (const [language, pkg] of Object.entries(DICTIONARIES)) {

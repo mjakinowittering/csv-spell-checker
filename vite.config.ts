@@ -48,8 +48,10 @@ export default defineConfig({
     // Pre-bundling the grid in dev breaks reactivity in the custom cell
     // components it mounts: cells never re-render after an edit (production
     // builds are unaffected). Compiling it from source like app code fixes it.
+    // hunspell-wasm finds its .wasm file relative to its own module
+    // (`new URL('hunspell.wasm', import.meta.url)`), which pre-bundling moves.
     optimizeDeps: {
-        exclude: ['wx-svelte-grid']
+        exclude: ['wx-svelte-grid', 'hunspell-wasm']
     },
     // Parse and spellcheck workers are ES modules with their own imports.
     worker: {

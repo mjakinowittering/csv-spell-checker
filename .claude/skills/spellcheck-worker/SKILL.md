@@ -1,6 +1,6 @@
 ---
 name: spellcheck-worker
-description: Background spellcheck — the Web Worker, Typo.js with Hunspell dictionaries, how dictionaries are copied and served, word tokenising, the worker message protocol, flag state on the sheet (including stale-result handling), flagged-cell rendering, and sheet language detection (Chrome's built-in detector with a Franc fallback, on the main thread). Load when working on the worker, dictionaries, tokenising rules, spelling flags or the issue count, or language detection.
+description: Background spellcheck — the Web Worker, hunspell-wasm with Hunspell dictionaries, how dictionaries are copied and served, word tokenising, the worker message protocol, flag state on the sheet (including stale-result handling), flagged-cell rendering, and sheet language detection (Chrome's built-in detector with a Franc fallback, on the main thread). Load when working on the worker, dictionaries, tokenising rules, spelling flags or the issue count, or language detection.
 ---
 
 # Spellcheck worker
@@ -8,7 +8,7 @@ description: Background spellcheck — the Web Worker, Typo.js with Hunspell dic
 `CLAUDE.md` invariants that apply here: **full-sheet spellcheck runs in the Web
 Worker, never on the main thread**; **after an edit only that cell is re-checked**;
 **flagged cells show a squiggly underline plus a ring that persist at rest**;
-**supported languages are English UK, English US, French, German and Spanish**.
+**the supported languages are the 14 in `LANGUAGE_CODES`**.
 
 ## Files
 
@@ -40,15 +40,35 @@ directory is gitignored. Keep the script's code list in step with
 | `en-US` | `dictionary-en`    | MIT and BSD                  |
 | `fr`    | `dictionary-fr`    | MPL-2.0                      |
 | `de`    | `dictionary-de`    | GPL-2.0 or GPL-3.0           |
+| `it`    | `dictionary-it`    | GPL-3.0                      |
 | `es`    | `dictionary-es`    | GPL-3.0, LGPL-3.0 or MPL-1.1 |
+| `pt-PT` | `dictionary-pt-pt` | GPL-2.0, LGPL-2.1 or MPL-1.1 |
+| `pt-BR` | `dictionary-pt`    | LGPL-3.0 or MPL-2.0          |
+| `nl`    | `dictionary-nl`    | BSD-3-Clause or CC-BY-3.0    |
+| `pl`    | `dictionary-pl`    | GPL-3.0, LGPL-3.0 or MPL-2.0 |
+| `sv`    | `dictionary-sv`    | LGPL-3.0                     |
+| `da`    | `dictionary-da`    | GPL-2.0, LGPL-2.1 or MPL-1.1 |
+| `nb`    | `dictionary-nb`    | GPL-2.0                      |
+| `cs`    | `dictionary-cs`    | GPL-2.0                      |
+
+`dictionary-pt` is Brazilian Portuguese; `dictionary-pt-br` is a deprecated
+empty package. Norwegian is Bokmål only (`no` and `nb` detections map to it;
+Nynorsk is unsupported). Portuguese detections map to pt-BR only for a pt-BR
+browser locale, like English to en-US.
 
 The worker fetches them from `<base>/dictionaries/`, a URL the page resolves
 lazily (it is prerendered, so `location` is unavailable at module load).
 
-**Italian is descoped.** Typo.js expands every affixed word form into one `Map`;
-Italian produces more than the V8 limit (~16.7M entries) and throws. Typo.js is
-also slow on French (~3.4s, ~320MB). `hunspell-wasm` loads all of them in under
-100ms and is a README todo item.
+## Hunspell engine
+
+`hunspell-wasm` (Hunspell compiled to WebAssembly):
+`createHunspellFromStrings(aff, dic)` then `testSpelling(word)`, memoised per
+language. It replaced Typo.js, which expanded every affixed form into one `Map`
+(Italian overflowed V8's limit; French took ~3.4s and ~320MB). Its Emscripten
+loader finds `hunspell.wasm` with `new URL(..., import.meta.url)`, so the package
+is in `optimizeDeps.exclude`: pre-bundling would move the module away from the
+file. The same build runs in Node for `src/tests/lib/spellcheck/dictionaries.test.ts`,
+which checks every dictionary against real text.
 
 ## Language detection
 

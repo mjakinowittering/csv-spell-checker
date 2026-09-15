@@ -4,7 +4,9 @@ A browser-based PWA for uploading or pasting CSV data and spell-checking it.
 Native browser spellcheck works while you edit a cell. A background Hunspell
 check flags misspellings across the whole sheet at rest. CSV only.
 
-Supported languages: English (UK), English (US), French, German, Spanish.
+Supported languages: English (UK), English (US), French, German, Italian,
+Spanish, Portuguese (Portugal), Portuguese (Brazil), Dutch, Polish, Swedish,
+Danish, Norwegian (Bokmål), Czech.
 
 ## Developing
 
@@ -33,13 +35,25 @@ with their licence files, into `static/dictionaries/`, which is gitignored. The
 built site serves them to the browser, so their licences apply to the deployed
 app:
 
-| Language     | Package            | Licence                      |
-| ------------ | ------------------ | ---------------------------- |
-| English (UK) | `dictionary-en-gb` | MIT and BSD                  |
-| English (US) | `dictionary-en`    | MIT and BSD                  |
-| French       | `dictionary-fr`    | MPL-2.0                      |
-| German       | `dictionary-de`    | GPL-2.0 or GPL-3.0           |
-| Spanish      | `dictionary-es`    | GPL-3.0, LGPL-3.0 or MPL-1.1 |
+| Language              | Package            | Licence                      |
+| --------------------- | ------------------ | ---------------------------- |
+| English (UK)          | `dictionary-en-gb` | MIT and BSD                  |
+| English (US)          | `dictionary-en`    | MIT and BSD                  |
+| French                | `dictionary-fr`    | MPL-2.0                      |
+| German                | `dictionary-de`    | GPL-2.0 or GPL-3.0           |
+| Italian               | `dictionary-it`    | GPL-3.0                      |
+| Spanish               | `dictionary-es`    | GPL-3.0, LGPL-3.0 or MPL-1.1 |
+| Portuguese (Portugal) | `dictionary-pt-pt` | GPL-2.0, LGPL-2.1 or MPL-1.1 |
+| Portuguese (Brazil)   | `dictionary-pt`    | LGPL-3.0 or MPL-2.0          |
+| Dutch                 | `dictionary-nl`    | BSD-3-Clause or CC-BY-3.0    |
+| Polish                | `dictionary-pl`    | GPL-3.0, LGPL-3.0 or MPL-2.0 |
+| Swedish               | `dictionary-sv`    | LGPL-3.0                     |
+| Danish                | `dictionary-da`    | GPL-2.0, LGPL-2.1 or MPL-1.1 |
+| Norwegian (Bokmål)    | `dictionary-nb`    | GPL-2.0                      |
+| Czech                 | `dictionary-cs`    | GPL-2.0                      |
+
+Spellchecking runs on [`hunspell-wasm`](https://github.com/rotemdan/hunspell-wasm),
+Hunspell compiled to WebAssembly (LGPL-2.0, GPL-2.0 or MPL-1.1).
 
 ## Todo
 
@@ -72,11 +86,11 @@ _No open bugs._
 
 #### Spellcheck
 
-- [x] **Spellcheck worker** — a Web Worker checks every non-ignored column with Typo.js Hunspell dictionaries, flags cells with a squiggly underline and ring, and re-checks only the edited cell after a change.
+- [x] **Spellcheck worker** — a Web Worker checks every non-ignored column with Hunspell dictionaries, flags cells with a squiggly underline and ring, and re-checks only the edited cell after a change.
 - [x] **Spelling-issue navigation** — the toolbar counter shows the issue count and next/previous jumps between flagged cells.
 - [x] **Ignore words** — flagged words show as dismissible chips in the cell editor, and the issue badge opens a sheet-wide summary of flagged words; dismissing a word adds it to the sheet's ignore list and rechecks the whole sheet.
 - [x] **Language visibility** — flag and language code in the toolbar (stacked flags for mixed sheets), a flag before each tab name, the selected cell's language in the status bar, and a flag-emoji font fallback for Windows.
-- [ ] **Migrate to hunspell-wasm** — replace Typo.js with the WebAssembly Hunspell build, which loads every dictionary in under 100ms (Typo.js takes 3.4s and 322MB for French) and can load Italian, so Italian can come back into scope, along with Portuguese, Dutch, Polish, Swedish, Danish, Norwegian and Czech.
+- [x] **Migrate to hunspell-wasm** — replace Typo.js with the WebAssembly Hunspell build, which loads every dictionary in under 100ms (Typo.js takes 3.4s and 322MB for French) and can load Italian, so Italian can come back into scope, along with Portuguese, Dutch, Polish, Swedish, Danish, Norwegian and Czech.
 
 #### Sheets
 

@@ -18,7 +18,7 @@ UI are messages; the language _codes_ are not.
 The user is checking the text in a spreadsheet, not operating a spellchecker.
 
 - Plain words: "Checking spelling…", never "Worker busy" or "Hunspell loaded".
-- Never name implementation details in the UI: no "Franc", "Typo.js", "worker",
+- Never name implementation details in the UI: no "Franc", "Hunspell", "worker",
   "dictionary file", "TSV".
 - Errors say what happened and what to do, in one sentence, without apology or
   codes: "This file isn't a CSV. Save it as CSV and upload it again."

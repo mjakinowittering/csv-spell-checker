@@ -1,59 +1,123 @@
 import { readFileSync } from 'node:fs';
 
-import Typo from 'typo-js';
+import { createHunspellFromStrings } from 'hunspell-wasm';
 import { describe, expect, it } from 'vitest';
 
 import { findMisspellings } from '$lib/spellcheck/tokenize';
 
-// The same Typo.js + Hunspell dictionaries the worker loads, read from the
-// dictionary packages directly.
-function checkerFor(pkg: string, language: string) {
+// The same hunspell-wasm build and dictionaries the worker loads, read from
+// the dictionary packages directly.
+async function checkerFor(pkg: string) {
     const file = (name: string) =>
         readFileSync(`node_modules/${pkg}/${name}`, 'utf8');
-    const typo = new Typo(language, file('index.aff'), file('index.dic'));
-    return (word: string) => typo.check(word);
+    const hunspell = await createHunspellFromStrings(
+        file('index.aff'),
+        file('index.dic')
+    );
+    return (word: string) => hunspell.testSpelling(word);
 }
 
-function misspelled(text: string, check: (word: string) => boolean) {
+async function misspelled(pkg: string, text: string) {
+    const check = await checkerFor(pkg);
     return findMisspellings(text, check).map(({ start, end }) =>
         text.slice(start, end)
     );
 }
 
-describe('real dictionaries', { timeout: 30_000 }, () => {
-    it('English (UK) accepts British spelling and flags typos', () => {
-        const check = checkerFor('dictionary-en-gb', 'en-GB');
+describe('real dictionaries', { timeout: 60_000 }, () => {
+    it('English (UK) accepts British spelling and flags typos', async () => {
         expect(
-            misspelled("Sarah's favourite colour, don't recieve hikking", check)
+            await misspelled(
+                'dictionary-en-gb',
+                "Sarah's favourite colour, don't recieve hikking"
+            )
         ).toEqual(['recieve', 'hikking']);
     });
 
-    it('English (US) rejects British spelling', () => {
-        const check = checkerFor('dictionary-en', 'en-US');
-        expect(misspelled('favorite color, favourite colour', check)).toEqual([
-            'favourite',
-            'colour'
-        ]);
+    it('English (US) rejects British spelling', async () => {
+        expect(
+            await misspelled(
+                'dictionary-en',
+                'favorite color, favourite colour'
+            )
+        ).toEqual(['favourite', 'colour']);
     });
 
-    it('French accepts elisions and accents', () => {
-        const check = checkerFor('dictionary-fr', 'fr');
+    it('French accepts elisions and accents', async () => {
         expect(
-            misspelled("L'homme a reçu la chaise abîmée, bonjuor", check)
+            await misspelled(
+                'dictionary-fr',
+                "L'homme a reçu la chaise abîmée, bonjuor"
+            )
         ).toEqual(['bonjuor']);
     });
 
-    it('German accepts umlauts and ß', () => {
-        const check = checkerFor('dictionary-de', 'de');
-        expect(misspelled('Die Häuser an der Straße, Hauss', check)).toEqual([
-            'Hauss'
-        ]);
+    it('German accepts umlauts and ß', async () => {
+        expect(
+            await misspelled('dictionary-de', 'Die Häuser an der Straße, Hauss')
+        ).toEqual(['Hauss']);
     });
 
-    it('Spanish accepts accents and ñ', () => {
-        const check = checkerFor('dictionary-es', 'es');
-        expect(misspelled('Los niños llegó mañana, cassa', check)).toEqual([
-            'cassa'
-        ]);
-    });
+    it.each([
+        [
+            'Italian',
+            'dictionary-it',
+            'La città è bellissima, perché piove? Grazzie',
+            'Grazzie'
+        ],
+        ['Spanish', 'dictionary-es', 'Los niños llegó mañana, cassa', 'cassa'],
+        [
+            'Portuguese (Portugal)',
+            'dictionary-pt-pt',
+            'A informação chegou ontem à tarde, obrigadu',
+            'obrigadu'
+        ],
+        [
+            'Portuguese (Brazil)',
+            'dictionary-pt',
+            'Você recebeu a informação ontem, obrigadu',
+            'obrigadu'
+        ],
+        [
+            'Dutch',
+            'dictionary-nl',
+            'Het meisje leest een boek in de tuin, huiz',
+            'huiz'
+        ],
+        [
+            'Polish',
+            'dictionary-pl',
+            'Dziękuję za książkę, pozdrawiam, ksiazka',
+            'ksiazka'
+        ],
+        [
+            'Swedish',
+            'dictionary-sv',
+            'Jag älskar böcker och kaffe, tackk',
+            'tackk'
+        ],
+        [
+            'Danish',
+            'dictionary-da',
+            'Jeg elsker bøger og kaffe om søndagen, takkk',
+            'takkk'
+        ],
+        [
+            'Norwegian (Bokmål)',
+            'dictionary-nb',
+            'Jeg liker å lese bøker på søndag, takkk',
+            'takkk'
+        ],
+        [
+            'Czech',
+            'dictionary-cs',
+            'Děkuji za knihu, přeji hezký den, dekuji',
+            'dekuji'
+        ]
+    ])(
+        '%s accepts its accented words and flags a typo',
+        async (_, pkg, text, typo) => {
+            expect(await misspelled(pkg, text)).toEqual([typo]);
+        }
+    );
 });

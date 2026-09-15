@@ -26,7 +26,7 @@ export const lowConfidenceGuess: LanguageGuess = {
 };
 
 export const unsupportedGuess: LanguageGuess = {
-    detected: 'pl',
+    detected: 'hu',
     prefill: 'unsupported',
     confidence: 0.91,
     confident: true,
