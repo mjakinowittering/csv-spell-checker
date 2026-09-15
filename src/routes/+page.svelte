@@ -1,5 +1,6 @@
 <script lang="ts">
     import UploadIcon from '@lucide/svelte/icons/upload';
+    import { base } from '$app/paths';
     import { toast } from 'svelte-sonner';
 
     import EmptyState from '$lib/components/empty/EmptyState.svelte';
@@ -13,7 +14,9 @@
     import { Button } from '$lib/components/ui/button';
     import { Input } from '$lib/components/ui/input';
 
+    import { languageLabel } from '$lib/languages/labels';
     import { m } from '$lib/paraglide/messages';
+    import { Spellchecker } from '$lib/spellcheck/spellchecker';
     import { importFiles, importPastedText } from '$lib/workbook/importer';
     import type { Sheet } from '$lib/workbook/sheet.svelte';
     import { Workbook } from '$lib/workbook/workbook.svelte';
@@ -21,6 +24,17 @@
     type EditTarget = { sheet: Sheet; row: number; column: number };
 
     const workbook = new Workbook();
+
+    // Resolved lazily: the page is prerendered, where `location` is undefined.
+    const spellchecker = new Spellchecker(
+        () => new URL(`${base}/dictionaries/`, location.href).href,
+        (language) =>
+            toast.error(
+                m.spellcheck_dictionary_error({
+                    language: languageLabel[language]()
+                })
+            )
+    );
 
     let fileInput = $state<HTMLInputElement | null>(null);
     // The Input component binds `value`; clearing it must go through the
@@ -54,18 +68,36 @@
         importPastedText(workbook, text);
     }
 
+    function confirmLanguages(sheet: Sheet, languages: Sheet['languages']) {
+        sheet.confirmLanguages(languages);
+        spellchecker.checkSheet(sheet);
+    }
+
+    function closeSheet(id: string) {
+        workbook.close(id);
+        spellchecker.release(id);
+    }
+
     // The editor closes itself and reports back through `onclosed`.
     function confirmEdit(value: string) {
         if (!editing) return;
-        editing.sheet.editCell(editing.row, editing.column, value);
+        const { sheet, row, column } = editing;
+        // Only the edited cell is re-checked, never the whole sheet.
+        if (sheet.editCell(row, column, value)) {
+            spellchecker.checkCell(sheet, row, column);
+        }
     }
 
     function undo() {
-        ready?.undo();
+        const sheet = ready;
+        const edit = sheet?.undo();
+        if (sheet && edit) spellchecker.checkCell(sheet, edit.row, edit.column);
     }
 
     function redo() {
-        ready?.redo();
+        const sheet = ready;
+        const edit = sheet?.redo();
+        if (sheet && edit) spellchecker.checkCell(sheet, edit.row, edit.column);
     }
 
     function isEditable(target: EventTarget | null): boolean {
@@ -152,7 +184,8 @@
 
 <div class="bg-background flex h-dvh flex-col">
     <Toolbar
-        issueCount={0}
+        issueCount={ready?.issueCount ?? 0}
+        checking={ready?.checkState === 'checking'}
         hasSheet={ready !== null}
         canUndo={ready?.history.canUndo ?? false}
         canRedo={ready?.history.canRedo ?? false}
@@ -184,8 +217,9 @@
                 <LanguageConfirmation
                     headers={sheet.rows[0]}
                     guess={active.phase.guess}
-                    onconfirm={(languages) => sheet.confirmLanguages(languages)}
-                    oncancel={() => workbook.close(sheet.id)}
+                    onconfirm={(languages) =>
+                        confirmLanguages(sheet, languages)}
+                    oncancel={() => closeSheet(sheet.id)}
                 />
             {/key}
         {:else}
@@ -204,7 +238,7 @@
         sheets={workbook.sheets}
         activeId={workbook.activeId}
         onactivate={(id) => workbook.activate(id)}
-        onclose={(id) => workbook.close(id)}
+        onclose={closeSheet}
         onupload={openFilePicker}
         onpaste={pasteFromClipboard}
     />

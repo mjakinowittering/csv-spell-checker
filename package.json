@@ -4,7 +4,10 @@
     "version": "0.0.1",
     "type": "module",
     "scripts": {
+        "dictionaries": "node scripts/copy-dictionaries.js",
+        "predev": "npm run dictionaries",
         "dev": "vite dev",
+        "prebuild": "npm run dictionaries",
         "build": "vite build",
         "preview": "vite preview",
         "prepare": "svelte-kit sync || echo ''",

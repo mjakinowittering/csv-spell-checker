@@ -1,0 +1,115 @@
+import { describe, expect, it } from 'vitest';
+
+import { Sheet } from '$lib/workbook/sheet.svelte';
+
+function readySheet(): Sheet {
+    const sheet = new Sheet('Sheet 1');
+    sheet.rows = [
+        ['Name', 'Bio'],
+        ['Sarah', 'Loves hikking'],
+        ['Priya', 'Recieves mail']
+    ];
+    sheet.phase = {
+        kind: 'confirming',
+        guess: { language: 'en-GB', confident: true }
+    };
+    sheet.confirmLanguages(['none', 'en-GB']);
+    return sheet;
+}
+
+const hikking = {
+    row: 1,
+    column: 1,
+    text: 'Loves hikking',
+    ranges: [{ start: 6, end: 13 }]
+};
+const recieves = {
+    row: 2,
+    column: 1,
+    text: 'Recieves mail',
+    ranges: [{ start: 0, end: 8 }]
+};
+
+describe('Sheet spelling flags', () => {
+    it('applies a full-sheet result and counts flagged cells', () => {
+        const sheet = readySheet();
+        sheet.beginCheck();
+        expect(sheet.checkState).toBe('checking');
+
+        sheet.applySheetFlags([recieves, hikking]);
+
+        expect(sheet.checkState).toBe('done');
+        expect(sheet.issueCount).toBe(2);
+        expect(sheet.flagRanges(1, 1)).toEqual([{ start: 6, end: 13 }]);
+        expect(sheet.flaggedCells()).toEqual([
+            { row: 1, column: 1 },
+            { row: 2, column: 1 }
+        ]);
+    });
+
+    it('ignores a result for text the cell no longer holds', () => {
+        const sheet = readySheet();
+        sheet.editCell(1, 1, 'Loves hiking');
+        sheet.applyCellFlags(hikking);
+        expect(sheet.flagRanges(1, 1)).toBeUndefined();
+    });
+
+    it('clears a cell flag when its re-check finds nothing', () => {
+        const sheet = readySheet();
+        sheet.beginCheck();
+        sheet.applySheetFlags([hikking]);
+
+        sheet.editCell(1, 1, 'Loves hiking');
+        sheet.applyCellFlags({
+            row: 1,
+            column: 1,
+            text: 'Loves hiking',
+            ranges: []
+        });
+
+        expect(sheet.issueCount).toBe(0);
+        // Flags and the edited tint are independent.
+        expect(sheet.isEdited(1, 1)).toBe(true);
+    });
+
+    it('keeps a cell re-check that arrives before a slower full-sheet result', () => {
+        const sheet = readySheet();
+        sheet.beginCheck();
+
+        // Edited mid-check; its own re-check comes back first.
+        sheet.editCell(2, 1, 'Recieves mial');
+        sheet.applyCellFlags({
+            row: 2,
+            column: 1,
+            text: 'Recieves mial',
+            ranges: [
+                { start: 0, end: 8 },
+                { start: 9, end: 13 }
+            ]
+        });
+
+        // The full-sheet result was computed from the old text.
+        sheet.applySheetFlags([recieves, hikking]);
+
+        expect(sheet.flagRanges(2, 1)).toHaveLength(2);
+        expect(sheet.flagRanges(1, 1)).toEqual([{ start: 6, end: 13 }]);
+    });
+
+    it('re-flags a cell after undo once its re-check returns', () => {
+        const sheet = readySheet();
+        sheet.beginCheck();
+        sheet.applySheetFlags([hikking]);
+
+        sheet.editCell(1, 1, 'Loves hiking');
+        sheet.applyCellFlags({
+            row: 1,
+            column: 1,
+            text: 'Loves hiking',
+            ranges: []
+        });
+        sheet.undo();
+        sheet.applyCellFlags(hikking);
+
+        expect(sheet.flagRanges(1, 1)).toEqual([{ start: 6, end: 13 }]);
+    });
+});

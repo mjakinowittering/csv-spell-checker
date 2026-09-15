@@ -7,6 +7,8 @@
     "toolbar_issue_previous_hint": "Previous issue",
     "toolbar_issue_next_hint": "Next issue",
     "toolbar_issues_count": "Issues: {count}",
+    "toolbar_checking": "Checking…",
+    "spellcheck_dictionary_error": "Couldn't load the {language} dictionary. Those columns aren't checked.",
     "toolbar_download_hint": "Download CSV",
     "toolbar_upload_hint": "Upload CSV",
     "theme_toggle_label": "Theme",

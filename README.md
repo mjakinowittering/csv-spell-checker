@@ -13,15 +13,33 @@ npm install
 npm run dev
 ```
 
-| Script          | Does                         |
-| --------------- | ---------------------------- |
-| `npm run dev`   | Start the dev server         |
-| `npm run build` | Build the static site        |
-| `npm run check` | Type-check with svelte-check |
-| `npm run lint`  | Prettier and ESLint          |
-| `npm run test`  | Run the Vitest suites once   |
+| Script                 | Does                                          |
+| ---------------------- | --------------------------------------------- |
+| `npm run dev`          | Start the dev server                          |
+| `npm run build`        | Build the static site                         |
+| `npm run check`        | Type-check with svelte-check                  |
+| `npm run lint`         | Prettier and ESLint                           |
+| `npm run test`         | Run the Vitest suites once                    |
+| `npm run dictionaries` | Copy the Hunspell dictionaries into `static/` |
 
 Deployed as a static SPA to GitHub Pages.
+
+## Dictionaries
+
+Spellcheck uses the Hunspell dictionaries from the
+[`dictionary-*`](https://github.com/wooorm/dictionaries) packages.
+`npm run dictionaries` (run automatically before `dev` and `build`) copies them,
+with their licence files, into `static/dictionaries/`, which is gitignored. The
+built site serves them to the browser, so their licences apply to the deployed
+app:
+
+| Language     | Package            | Licence                      |
+| ------------ | ------------------ | ---------------------------- |
+| English (UK) | `dictionary-en-gb` | MIT and BSD                  |
+| English (US) | `dictionary-en`    | MIT and BSD                  |
+| French       | `dictionary-fr`    | MPL-2.0                      |
+| German       | `dictionary-de`    | GPL-2.0 or GPL-3.0           |
+| Spanish      | `dictionary-es`    | GPL-3.0, LGPL-3.0 or MPL-1.1 |
 
 ## Todo
 
@@ -47,7 +65,7 @@ _No open bugs._
 
 #### Spellcheck
 
-- [ ] **Spellcheck worker** — a Web Worker checks every non-ignored column with Typo.js Hunspell dictionaries, flags cells with a squiggly underline and ring, and re-checks only the edited cell after a change.
+- [x] **Spellcheck worker** — a Web Worker checks every non-ignored column with Typo.js Hunspell dictionaries, flags cells with a squiggly underline and ring, and re-checks only the edited cell after a change.
 - [ ] **Spelling-issue navigation** — the toolbar counter shows the issue count and next/previous jumps between flagged cells.
 - [ ] **Migrate to hunspell-wasm** — replace Typo.js with the WebAssembly Hunspell build, which loads every dictionary in under 100ms (Typo.js takes 3.4s and 322MB for French) and can load Italian, so Italian can come back into scope.
 

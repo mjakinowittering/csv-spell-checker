@@ -21,6 +21,8 @@ Thumbs.db
 # Vite
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+# Hunspell dictionaries, copied from node_modules by `npm run dictionaries`
+/static/dictionaries
 # Paraglide
 src/lib/paraglide
 project.inlang/cache/

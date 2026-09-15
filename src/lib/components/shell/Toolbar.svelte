@@ -10,6 +10,7 @@
     import { Badge } from '$lib/components/ui/badge';
     import * as ButtonGroup from '$lib/components/ui/button-group';
     import { Separator } from '$lib/components/ui/separator';
+    import { Spinner } from '$lib/components/ui/spinner';
 
     import { m } from '$lib/paraglide/messages';
 
@@ -18,6 +19,7 @@
 
     let {
         issueCount,
+        checking = false,
         hasSheet,
         canUndo,
         canRedo,
@@ -29,6 +31,7 @@
         onupload
     }: {
         issueCount: number;
+        checking?: boolean;
         hasSheet: boolean;
         canUndo: boolean;
         canRedo: boolean;
@@ -83,10 +86,15 @@
 
     <div class="flex items-center gap-1">
         <Badge
-            variant={issueCount > 0 ? 'destructive' : 'secondary'}
+            variant={!checking && issueCount > 0 ? 'destructive' : 'secondary'}
             aria-live="polite"
         >
-            {m.toolbar_issues_count({ count: issueCount })}
+            {#if checking}
+                <Spinner stroke="currentColor" class="size-3" />
+                {m.toolbar_checking()}
+            {:else}
+                {m.toolbar_issues_count({ count: issueCount })}
+            {/if}
         </Badge>
         <ToolbarButton
             icon={ChevronUpIcon}
