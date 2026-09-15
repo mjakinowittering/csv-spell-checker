@@ -1,5 +1,6 @@
 <script lang="ts">
     import { base } from '$app/paths';
+    import { onMount } from 'svelte';
     import { toast } from 'svelte-sonner';
 
     import EmptyState from '$lib/components/empty/EmptyState.svelte';
@@ -16,18 +17,25 @@
     import { serializeCsv } from '$lib/csv/serialize';
     import { languageLabel } from '$lib/languages/labels';
     import { m } from '$lib/paraglide/messages';
+    import { Persistence } from '$lib/persistence/persistence';
+    import { WorkbookStore } from '$lib/persistence/store';
     import {
         adjacentIssue,
         type IssueDirection
     } from '$lib/spellcheck/navigation';
     import { Spellchecker } from '$lib/spellcheck/spellchecker';
     import { importFiles, importPastedText } from '$lib/workbook/importer';
-    import type { Sheet } from '$lib/workbook/sheet.svelte';
+    import { Sheet } from '$lib/workbook/sheet.svelte';
     import { Workbook } from '$lib/workbook/workbook.svelte';
 
     type EditTarget = { sheet: Sheet; row: number; column: number };
 
     const workbook = new Workbook();
+
+    // Every mutation below writes straight through to IndexedDB.
+    const persistence = new Persistence(new WorkbookStore(), () =>
+        toast.error(m.persistence_save_error())
+    );
 
     /** Download a sheet's current values, edits included, as CSV. */
     function exportSheet(sheet: Sheet) {
@@ -54,6 +62,8 @@
     let fileInputValue = $state('');
     let dragDepth = $state(0);
     let editing = $state<EditTarget | null>(null);
+    // Until stored sheets are back, the empty state would only flash.
+    let restored = $state(false);
 
     const active = $derived(workbook.active);
 
@@ -67,12 +77,47 @@
         return sheet?.phase.kind === 'ready' ? sheet : null;
     }
 
+    onMount(() => {
+        void restore();
+    });
+
+    /**
+     * Bring back every sheet from IndexedDB as it was left. Spelling flags are
+     * never stored: ready sheets are checked again from their current cells.
+     */
+    async function restore() {
+        try {
+            const stored = await persistence.store.load();
+            const sheets = stored.sheets.map(({ record, rows }) =>
+                Sheet.fromRecord(record, rows)
+            );
+            workbook.restore(sheets, stored.activeId, stored.uploadCount);
+            for (const sheet of sheets) {
+                if (sheet.phase.kind === 'ready')
+                    spellchecker.checkSheet(sheet);
+            }
+        } catch (error) {
+            console.error('Could not load saved sheets', error);
+            toast.error(m.persistence_load_error());
+        } finally {
+            restored = true;
+        }
+    }
+
+    function onparsed(sheet: Sheet) {
+        persistence.sheetAdded(sheet, workbook);
+    }
+
     function openFilePicker() {
         fileInput?.click();
     }
 
     function onFilesChosen(event: Event & { currentTarget: HTMLInputElement }) {
-        importFiles(workbook, Array.from(event.currentTarget.files ?? []));
+        importFiles(
+            workbook,
+            Array.from(event.currentTarget.files ?? []),
+            onparsed
+        );
         // Reset so choosing the same file again still fires `change`.
         fileInputValue = '';
     }
@@ -86,25 +131,33 @@
             toast.error(m.import_clipboard_error());
             return;
         }
-        importPastedText(workbook, text);
+        importPastedText(workbook, text, onparsed);
     }
 
     function confirmLanguages(sheet: Sheet, languages: Sheet['languages']) {
         sheet.confirmLanguages(languages);
+        persistence.sheetChanged(sheet);
         spellchecker.checkSheet(sheet);
+    }
+
+    function activateSheet(id: string) {
+        workbook.activate(id);
+        persistence.workbookChanged(workbook);
     }
 
     function closeSheet(id: string) {
         workbook.close(id);
         spellchecker.release(id);
+        persistence.sheetRemoved(id, workbook);
     }
 
     // The editor closes itself and reports back through `onclosed`.
     function confirmEdit(value: string) {
         if (!editing) return;
         const { sheet, row, column } = editing;
-        // Only the edited cell is re-checked, never the whole sheet.
         if (sheet.editCell(row, column, value)) {
+            persistence.sheetChanged(sheet);
+            // Only the edited cell is re-checked, never the whole sheet.
             spellchecker.checkCell(sheet, row, column);
         }
     }
@@ -112,13 +165,17 @@
     function undo() {
         const sheet = readySheet();
         const edit = sheet?.undo();
-        if (sheet && edit) spellchecker.checkCell(sheet, edit.row, edit.column);
+        if (!sheet || !edit) return;
+        persistence.sheetChanged(sheet);
+        spellchecker.checkCell(sheet, edit.row, edit.column);
     }
 
     function redo() {
         const sheet = readySheet();
         const edit = sheet?.redo();
-        if (sheet && edit) spellchecker.checkCell(sheet, edit.row, edit.column);
+        if (!sheet || !edit) return;
+        persistence.sheetChanged(sheet);
+        spellchecker.checkCell(sheet, edit.row, edit.column);
     }
 
     // The grid scrolls to and focuses whichever issue becomes current.
@@ -162,7 +219,7 @@
         const text = event.clipboardData?.getData('text/plain') ?? '';
         if (text === '') return;
         event.preventDefault();
-        importPastedText(workbook, text);
+        importPastedText(workbook, text, onparsed);
     }
 
     function carriesFiles(event: DragEvent): boolean {
@@ -190,7 +247,11 @@
         if (!carriesFiles(event)) return;
         event.preventDefault();
         dragDepth = 0;
-        importFiles(workbook, Array.from(event.dataTransfer?.files ?? []));
+        importFiles(
+            workbook,
+            Array.from(event.dataTransfer?.files ?? []),
+            onparsed
+        );
     }
 </script>
 
@@ -236,10 +297,12 @@
 
     <main class="min-h-0 flex-1 overflow-hidden">
         {#if active === null}
-            <EmptyState
-                onupload={openFilePicker}
-                onpaste={pasteFromClipboard}
-            />
+            {#if restored}
+                <EmptyState
+                    onupload={openFilePicker}
+                    onpaste={pasteFromClipboard}
+                />
+            {/if}
         {:else if active.phase.kind === 'parsing'}
             <SheetLoading progress={active.phase.progress} />
         {:else if active.phase.kind === 'confirming'}
@@ -268,7 +331,7 @@
     <SheetTabs
         sheets={workbook.sheets}
         activeId={workbook.activeId}
-        onactivate={(id) => workbook.activate(id)}
+        onactivate={activateSheet}
         onclose={closeSheet}
         onupload={openFilePicker}
         onpaste={pasteFromClipboard}

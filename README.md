@@ -59,16 +59,33 @@ _No open bugs._
 - [x] **CSV upload and paste** — drag-drop or browse a CSV, or paste tab-separated content; each opens a new "Sheet N" or "Pasted sheet" tab with a bold frozen header row and a parsing progress indicator.
 - [x] **Language detection and confirmation** — Franc samples the first 10 non-header rows for one sheet-wide guess that pre-fills a per-column language screen, with low-confidence warnings, shown for every new sheet.
 
+- [ ] **Language detection overhaul** — Chrome's built-in Language Detector with Franc as the fallback, no pre-filled guess below a confidence threshold, unsupported languages allowed but marked, and a confirmation screen led by one sheet-wide picker with per-column overrides tucked below.
+
+#### Persistence
+
+- [x] **IndexedDB persistence** — every open sheet (cells and edits, name, languages, ignore list) is written through to IndexedDB on each change and reopened on load; spelling flags are always recomputed, never stored.
+
 #### Grid
 
 - [x] **Spreadsheet grid and cell editor** — SVAR data grid with lettered columns and numbered rows, read-only cells that open a spellcheck-enabled modal editor, a permanent tint on edited cells, and undo/redo.
+- [ ] **Cell editing fixes** — a Grammarly toggle in the editor (off by default), and a flagged cell's red ring always winning over the edited style, with edited-and-clean cells shown in green.
 
 #### Spellcheck
 
 - [x] **Spellcheck worker** — a Web Worker checks every non-ignored column with Typo.js Hunspell dictionaries, flags cells with a squiggly underline and ring, and re-checks only the edited cell after a change.
 - [x] **Spelling-issue navigation** — the toolbar counter shows the issue count and next/previous jumps between flagged cells.
-- [ ] **Migrate to hunspell-wasm** — replace Typo.js with the WebAssembly Hunspell build, which loads every dictionary in under 100ms (Typo.js takes 3.4s and 322MB for French) and can load Italian, so Italian can come back into scope.
+- [ ] **Ignore words** — flagged words show as dismissible chips in the cell editor, and the issue badge opens a sheet-wide summary of flagged words; dismissing a word adds it to the sheet's ignore list and rechecks the whole sheet.
+- [ ] **Language visibility** — flag and language code in the toolbar (stacked flags for mixed sheets), a flag before each tab name, the selected cell's language in the status bar, and a flag-emoji font fallback for Windows.
+- [ ] **Migrate to hunspell-wasm** — replace Typo.js with the WebAssembly Hunspell build, which loads every dictionary in under 100ms (Typo.js takes 3.4s and 322MB for French) and can load Italian, so Italian can come back into scope, along with Portuguese, Dutch, Polish, Swedish, Danish, Norwegian and Czech.
+
+#### Sheets
+
+- [ ] **Sheet renaming and layout** — rename a tab from its right-click menu, and hide the status bar when no sheet is open.
 
 #### Export
 
 - [x] **CSV export** — the download button saves the active sheet as a CSV file.
+
+#### Tooling
+
+- [ ] **Storybook for every component** — a story per component (large ones split into smaller bindable pieces), a light/dark theme toggle, and every story accessibility-checked in both themes.

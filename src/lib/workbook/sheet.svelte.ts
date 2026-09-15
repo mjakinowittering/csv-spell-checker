@@ -16,6 +16,23 @@ export type CheckState = 'idle' | 'checking' | 'done';
 
 export type CellPosition = { row: number; column: number };
 
+/**
+ * What is stored for a sheet in IndexedDB (its parsed rows are stored
+ * separately). Spelling flags and undo history are derived and never stored.
+ */
+export type SheetRecord = {
+    id: string;
+    name: string;
+    sourceFileName: string | null;
+    phase: { kind: 'confirming'; guess: LanguageGuess } | { kind: 'ready' };
+    languages: ColumnLanguage[];
+    ignoredWords: string[];
+    /** Edited cell values, as `[cellKey, value]` pairs. */
+    overrides: [string, string][];
+    /** Keys of every cell ever edited. */
+    edited: string[];
+};
+
 /** Map key for a cell. Row 0 is the header row. */
 export function cellKey(row: number, column: number): string {
     return `${row}:${column}`;
@@ -28,8 +45,9 @@ function parseCellKey(key: string): CellPosition {
 
 /** One open tab: its parsed rows and where it is in the import flow. */
 export class Sheet {
-    readonly id = crypto.randomUUID();
-    readonly name: string;
+    readonly id: string;
+    /** The tab's display name. */
+    name = $state('');
     /** The uploaded file's name, reused for export. Null for pasted sheets. */
     readonly sourceFileName: string | null;
 
@@ -43,6 +61,9 @@ export class Sheet {
 
     /** One language per column, set only by confirming the language screen. */
     languages = $state.raw<ColumnLanguage[]>([]);
+
+    /** Words dismissed as false positives for this sheet. */
+    readonly ignoredWords = new SvelteSet<string>();
 
     /**
      * Every cell that has ever been edited. Permanent: undo restores a cell's
@@ -73,9 +94,44 @@ export class Sheet {
     // eslint-disable-next-line svelte/prefer-svelte-reactivity
     #changedDuringCheck = new Set<string>();
 
-    constructor(name: string, sourceFileName: string | null = null) {
+    constructor(
+        name: string,
+        sourceFileName: string | null = null,
+        id: string = crypto.randomUUID()
+    ) {
+        this.id = id;
         this.name = name;
         this.sourceFileName = sourceFileName;
+    }
+
+    /** Rebuild a sheet saved with `toRecord()`. Flags start empty. */
+    static fromRecord(record: SheetRecord, rows: string[][]): Sheet {
+        const sheet = new Sheet(record.name, record.sourceFileName, record.id);
+        sheet.rows = rows;
+        sheet.languages = record.languages;
+        sheet.phase = record.phase;
+        for (const word of record.ignoredWords) sheet.ignoredWords.add(word);
+        for (const [key, value] of record.overrides) {
+            sheet.#overrides.set(key, value);
+        }
+        for (const key of record.edited) sheet.edited.add(key);
+        return sheet;
+    }
+
+    /** The stored form of this sheet, or null while it is still parsing. */
+    toRecord(): SheetRecord | null {
+        if (this.phase.kind === 'parsing') return null;
+        return {
+            id: this.id,
+            name: this.name,
+            sourceFileName: this.sourceFileName,
+            // Snapshot: IndexedDB cannot clone Svelte's state proxies.
+            phase: $state.snapshot(this.phase),
+            languages: [...this.languages],
+            ignoredWords: [...this.ignoredWords],
+            overrides: [...this.#overrides.entries()],
+            edited: [...this.edited]
+        };
     }
 
     /**

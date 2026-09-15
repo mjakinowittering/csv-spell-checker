@@ -1,5 +1,12 @@
 import type { Sheet } from './sheet.svelte';
 
+/** The stored form of the workbook: tab order, active tab, upload counter. */
+export type WorkbookRecord = {
+    activeId: string | null;
+    sheetOrder: string[];
+    uploadCount: number;
+};
+
 /** The set of open sheets and which one is showing. */
 export class Workbook {
     // The array is replaced on open/close, never mutated, so it stays raw;
@@ -17,6 +24,29 @@ export class Workbook {
     nextUploadNumber(): number {
         this.#uploadCount += 1;
         return this.#uploadCount;
+    }
+
+    /**
+     * Put back sheets loaded from storage, ahead of any opened while loading.
+     * Restores the active tab when it still exists.
+     */
+    restore(sheets: Sheet[], activeId: string | null, uploadCount: number) {
+        this.sheets = [...sheets, ...this.sheets];
+        this.#uploadCount = Math.max(this.#uploadCount, uploadCount);
+        if (this.activeId === null) {
+            this.activeId =
+                sheets.find((sheet) => sheet.id === activeId)?.id ??
+                sheets[0]?.id ??
+                null;
+        }
+    }
+
+    toRecord(): WorkbookRecord {
+        return {
+            activeId: this.activeId,
+            sheetOrder: this.sheets.map((sheet) => sheet.id),
+            uploadCount: this.#uploadCount
+        };
     }
 
     open(sheet: Sheet) {

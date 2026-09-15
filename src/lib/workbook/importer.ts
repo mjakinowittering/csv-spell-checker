@@ -7,6 +7,9 @@ import { m } from '$lib/paraglide/messages';
 import { Sheet } from './sheet.svelte';
 import type { Workbook } from './workbook.svelte';
 
+/** Called once a new sheet has parsed and is waiting for confirmation. */
+export type OnParsed = (sheet: Sheet) => void;
+
 const pasteTime = new Intl.DateTimeFormat(undefined, { timeStyle: 'medium' });
 
 export function isCsvFile(file: File): boolean {
@@ -14,7 +17,11 @@ export function isCsvFile(file: File): boolean {
 }
 
 /** Open each CSV file in its own new tab. Anything else is refused. */
-export function importFiles(workbook: Workbook, files: Iterable<File>) {
+export function importFiles(
+    workbook: Workbook,
+    files: Iterable<File>,
+    onparsed: OnParsed
+) {
     for (const file of files) {
         if (!isCsvFile(file)) {
             toast.error(m.import_not_csv_error({ name: file.name }));
@@ -24,12 +31,16 @@ export function importFiles(workbook: Workbook, files: Iterable<File>) {
             m.tabs_upload_name({ number: workbook.nextUploadNumber() }),
             file.name
         );
-        void load(workbook, sheet, { kind: 'file', file }, file.name);
+        void load(workbook, sheet, { kind: 'file', file }, file.name, onparsed);
     }
 }
 
 /** Open pasted spreadsheet cells in a new tab. Never merges into a sheet. */
-export function importPastedText(workbook: Workbook, text: string) {
+export function importPastedText(
+    workbook: Workbook,
+    text: string,
+    onparsed: OnParsed
+) {
     if (text.trim() === '') {
         toast.error(m.import_clipboard_empty_error());
         return;
@@ -37,14 +48,15 @@ export function importPastedText(workbook: Workbook, text: string) {
     const sheet = new Sheet(
         m.tabs_paste_name({ time: pasteTime.format(new Date()) })
     );
-    void load(workbook, sheet, { kind: 'text', text }, sheet.name);
+    void load(workbook, sheet, { kind: 'text', text }, sheet.name, onparsed);
 }
 
 async function load(
     workbook: Workbook,
     sheet: Sheet,
     source: ParseSource,
-    displayName: string
+    displayName: string,
+    onparsed: OnParsed
 ) {
     // The tab appears immediately; parsing progress shows inside it.
     workbook.open(sheet);
@@ -63,6 +75,7 @@ async function load(
         sheet.rows = rows;
         // Always ask: no sheet skips language confirmation.
         sheet.phase = { kind: 'confirming', guess };
+        onparsed(sheet);
     } catch (error) {
         console.error('Could not parse', displayName, error);
         workbook.close(sheet.id);

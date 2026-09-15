@@ -10,6 +10,8 @@
     "toolbar_issues_one": "1 issue",
     "toolbar_checking": "Checking…",
     "spellcheck_dictionary_error": "Couldn't load the {language} dictionary. Those columns aren't checked.",
+    "persistence_save_error": "Couldn't save your changes in this browser. They'll be lost when you close the page.",
+    "persistence_load_error": "Couldn't reopen the sheets from your last visit.",
     "toolbar_download_hint": "Download CSV",
     "toolbar_upload_hint": "Upload CSV",
     "theme_toggle_label": "Theme",

@@ -28,6 +28,7 @@ Load the relevant skill file when working in that domain. Skills defer to this f
 | Spellcheck worker | .claude/skills/spellcheck-worker/SKILL.md | Web Worker, Typo.js, Franc integration |
 | Grid/editor       | .claude/skills/grid-and-editor/SKILL.md   | SVAR grid, cell modal, edit history    |
 | UI components     | .claude/skills/ui-components/SKILL.md     | shadcn-svelte usage, theming           |
+| Persistence       | .claude/skills/persistence/SKILL.md       | IndexedDB storage, restoring sheets    |
 
 (Domain skill files beyond todo-review and branch-and-commit are stubs to be filled in as each area is built.)
 
@@ -48,3 +49,4 @@ Load the relevant skill file when working in that domain. Skills defer to this f
 - All UI copy through shadcn-svelte components; no ad hoc HTML form elements.
 - Theme defaults to OS-level prefers-color-scheme on first load; manual toggle always available.
 - Status bar is informational only (e.g. row count); never shows edited-cell counts.
+- Open sheets persist in IndexedDB (via `idb`): cells and edits, name, languages and ignore list. Every action that changes them writes through immediately — never on a timer or on unload. Spelling flags are never stored; they are recomputed by the worker whenever a sheet is loaded.
