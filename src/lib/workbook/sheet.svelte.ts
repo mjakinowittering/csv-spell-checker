@@ -6,7 +6,7 @@ import {
     type LanguageCode
 } from '$lib/languages/codes';
 import type { LanguageGuess } from '$lib/languages/detect';
-import type { CellFlags } from '$lib/spellcheck/protocol';
+import type { CellFlags, WordFlag } from '$lib/spellcheck/protocol';
 import { ignoreKey, type MisspellingRange } from '$lib/spellcheck/tokenize';
 
 import { EditHistory, type CellEdit } from './history.svelte';
@@ -20,8 +20,16 @@ export type CheckState = 'idle' | 'checking' | 'done';
 
 export type CellPosition = { row: number; column: number };
 
-/** A flagged word across the sheet: its ignore key, as written, and how often. */
-export type FlaggedWord = { key: string; word: string; count: number };
+/**
+ * A flagged word across the sheet: its ignore key, as written, how often it
+ * occurs, and Hunspell's top suggestion (null when it has none).
+ */
+export type FlaggedWord = {
+    key: string;
+    word: string;
+    count: number;
+    suggestion: string | null;
+};
 
 /**
  * What is stored for a sheet in IndexedDB (its parsed rows are stored
@@ -118,7 +126,7 @@ export class Sheet {
     // flagged words can be read back even while an edit is being re-checked.
     #flags = new SvelteMap<
         string,
-        { text: string; ranges: readonly MisspellingRange[] }
+        { text: string; ranges: readonly WordFlag[] }
     >();
 
     /** Number of flagged cells. */
@@ -268,12 +276,17 @@ export class Sheet {
         // eslint-disable-next-line svelte/prefer-svelte-reactivity
         const words = new Map<string, FlaggedWord>();
         for (const { text, ranges } of this.#flags.values()) {
-            for (const { start, end } of ranges) {
+            for (const { start, end, suggestions } of ranges) {
                 const word = text.slice(start, end);
                 const key = ignoreKey(word);
+                const suggestion = suggestions[0] ?? null;
                 const entry = words.get(key);
-                if (entry) entry.count += 1;
-                else words.set(key, { key, word, count: 1 });
+                if (entry) {
+                    entry.count += 1;
+                    entry.suggestion ??= suggestion;
+                } else {
+                    words.set(key, { key, word, count: 1, suggestion });
+                }
             }
         }
         return [...words.values()].sort(

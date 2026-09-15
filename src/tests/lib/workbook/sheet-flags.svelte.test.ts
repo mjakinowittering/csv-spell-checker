@@ -27,13 +27,13 @@ const hikking = {
     row: 1,
     column: 1,
     text: 'Loves hikking',
-    ranges: [{ start: 6, end: 13 }]
+    ranges: [{ start: 6, end: 13, suggestions: ['hiking', 'hinging'] }]
 };
 const recieves = {
     row: 2,
     column: 1,
     text: 'Recieves mail',
-    ranges: [{ start: 0, end: 8 }]
+    ranges: [{ start: 0, end: 8, suggestions: ['Receives'] }]
 };
 
 describe('Sheet spelling flags', () => {
@@ -46,7 +46,7 @@ describe('Sheet spelling flags', () => {
 
         expect(sheet.checkState).toBe('done');
         expect(sheet.issueCount).toBe(2);
-        expect(sheet.flagRanges(1, 1)).toEqual([{ start: 6, end: 13 }]);
+        expect(sheet.flagRanges(1, 1)).toEqual(hikking.ranges);
         expect(sheet.flaggedCells()).toEqual([
             { row: 1, column: 1 },
             { row: 2, column: 1 }
@@ -89,8 +89,8 @@ describe('Sheet spelling flags', () => {
             column: 1,
             text: 'Recieves mial',
             ranges: [
-                { start: 0, end: 8 },
-                { start: 9, end: 13 }
+                { start: 0, end: 8, suggestions: ['Receives'] },
+                { start: 9, end: 13, suggestions: ['mail'] }
             ]
         });
 
@@ -98,7 +98,7 @@ describe('Sheet spelling flags', () => {
         sheet.applySheetFlags([recieves, hikking]);
 
         expect(sheet.flagRanges(2, 1)).toHaveLength(2);
-        expect(sheet.flagRanges(1, 1)).toEqual([{ start: 6, end: 13 }]);
+        expect(sheet.flagRanges(1, 1)).toEqual(hikking.ranges);
     });
 
     it('re-flags a cell after undo once its re-check returns', () => {
@@ -116,7 +116,7 @@ describe('Sheet spelling flags', () => {
         sheet.undo();
         sheet.applyCellFlags(hikking);
 
-        expect(sheet.flagRanges(1, 1)).toEqual([{ start: 6, end: 13 }]);
+        expect(sheet.flagRanges(1, 1)).toEqual(hikking.ranges);
     });
 });
 
@@ -126,8 +126,10 @@ describe('Sheet ignored words', () => {
         column: 1,
         text: 'Hikking and hikking',
         ranges: [
-            { start: 0, end: 7 },
-            { start: 12, end: 19 }
+            // Hunspell suggests nothing for the first, so the sheet-wide
+            // summary takes the next occurrence's suggestion.
+            { start: 0, end: 7, suggestions: [] },
+            { start: 12, end: 19, suggestions: ['hiking'] }
         ]
     };
 
@@ -149,8 +151,33 @@ describe('Sheet ignored words', () => {
         sheet.beginCheck();
         sheet.applySheetFlags([hikking, twice, { ...recieves, column: 0 }]);
         expect(sheet.flaggedWords()).toEqual([
-            { key: 'hikking', word: 'hikking', count: 3 },
-            { key: 'recieves', word: 'Recieves', count: 1 }
+            {
+                key: 'hikking',
+                word: 'hikking',
+                count: 3,
+                suggestion: 'hiking'
+            },
+            {
+                key: 'recieves',
+                word: 'Recieves',
+                count: 1,
+                suggestion: 'Receives'
+            }
+        ]);
+    });
+
+    it('takes the first suggestion found for a word', () => {
+        const sheet = readySheet();
+        sheet.editCell(2, 1, twice.text);
+        sheet.beginCheck();
+        sheet.applySheetFlags([twice]);
+        expect(sheet.flaggedWords()).toEqual([
+            {
+                key: 'hikking',
+                word: 'Hikking',
+                count: 2,
+                suggestion: 'hiking'
+            }
         ]);
     });
 
@@ -177,8 +204,8 @@ describe('Sheet ignored words', () => {
                 column: 1,
                 text: 'Recieves hikking',
                 ranges: [
-                    { start: 0, end: 8 },
-                    { start: 9, end: 16 }
+                    { start: 0, end: 8, suggestions: ['Receives'] },
+                    { start: 9, end: 16, suggestions: ['hiking'] }
                 ]
             }
         ]);

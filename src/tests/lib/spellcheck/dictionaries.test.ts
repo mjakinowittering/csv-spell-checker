@@ -25,6 +25,20 @@ async function misspelled(pkg: string, text: string) {
 }
 
 describe('real dictionaries', { timeout: 60_000 }, () => {
+    it('ranks the likely correction first', async () => {
+        const hunspellFor = (pkg: string) =>
+            createHunspellFromStrings(
+                readFileSync(`node_modules/${pkg}/index.aff`, 'utf8'),
+                readFileSync(`node_modules/${pkg}/index.dic`, 'utf8')
+            );
+        const french = await hunspellFor('dictionary-fr');
+        expect(french.getSpellingSuggestions('Trés')[0]).toBe('Très');
+        expect(french.getSpellingSuggestions('macher')[0]).toBe('mâcher');
+        expect(french.getSpellingSuggestions('vittesse')[0]).toBe('vitesse');
+        const english = await hunspellFor('dictionary-en-gb');
+        expect(english.getSpellingSuggestions('hikking')[0]).toBe('hiking');
+    });
+
     it('English (UK) accepts British spelling and flags typos', async () => {
         expect(
             await misspelled(

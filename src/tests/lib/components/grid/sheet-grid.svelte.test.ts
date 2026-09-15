@@ -83,7 +83,7 @@ describe('SheetGrid', () => {
             row: 2,
             column: 1,
             text: 'Blaeks',
-            ranges: [{ start: 0, end: 6 }]
+            ranges: [{ start: 0, end: 6, suggestions: ['Blakes'] }]
         });
         flushSync();
 

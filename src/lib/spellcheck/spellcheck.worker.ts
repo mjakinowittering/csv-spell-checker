@@ -2,17 +2,25 @@ import { createHunspellFromStrings } from 'hunspell-wasm';
 
 import { isLanguageCode, type LanguageCode } from '$lib/languages/codes';
 
-import type {
-    CellFlags,
-    SpellcheckRequest,
-    SpellcheckResponse
+import {
+    MAX_SUGGESTIONS,
+    type CellFlags,
+    type SpellcheckRequest,
+    type SpellcheckResponse,
+    type WordFlag
 } from './protocol';
 import { findMisspellings, type WordCheck } from './tokenize';
 
 const PROGRESS_EVERY = 500;
 
+/** One loaded dictionary: spelling checks and suggestions, both memoised. */
+type Checker = {
+    check: WordCheck;
+    suggest: (word: string) => string[];
+};
+
 let dictionaryBase = '';
-const checkers = new Map<LanguageCode, Promise<WordCheck>>();
+const checkers = new Map<LanguageCode, Promise<Checker>>();
 
 function post(response: SpellcheckResponse) {
     self.postMessage(response);
@@ -25,11 +33,11 @@ async function fetchText(url: string): Promise<string> {
 }
 
 /** Load a dictionary once per worker; repeated words are memoised. */
-function loadChecker(language: LanguageCode): Promise<WordCheck> {
+function loadChecker(language: LanguageCode): Promise<Checker> {
     const existing = checkers.get(language);
     if (existing) return existing;
 
-    const checker = (async (): Promise<WordCheck> => {
+    const checker = (async (): Promise<Checker> => {
         const url = (file: string) => `${dictionaryBase}${language}/${file}`;
         const [aff, dic] = await Promise.all([
             fetchText(url('index.aff')),
@@ -38,14 +46,29 @@ function loadChecker(language: LanguageCode): Promise<WordCheck> {
         // Hunspell compiled to WebAssembly: loads even the largest dictionaries
         // (Italian, Polish, Czech) in well under a second.
         const hunspell = await createHunspellFromStrings(aff, dic);
-        const memo = new Map<string, boolean>();
-        return (word) => {
-            let correct = memo.get(word);
-            if (correct === undefined) {
-                correct = hunspell.testSpelling(word);
-                memo.set(word, correct);
+        const correct = new Map<string, boolean>();
+        // Suggestions are far slower than checks, and a sheet repeats the same
+        // misspellings, so each word is only ever looked up once.
+        const suggestions = new Map<string, string[]>();
+        return {
+            check: (word) => {
+                let result = correct.get(word);
+                if (result === undefined) {
+                    result = hunspell.testSpelling(word);
+                    correct.set(word, result);
+                }
+                return result;
+            },
+            suggest: (word) => {
+                let result = suggestions.get(word);
+                if (result === undefined) {
+                    result = hunspell
+                        .getSpellingSuggestions(word)
+                        .slice(0, MAX_SUGGESTIONS);
+                    suggestions.set(word, result);
+                }
+                return result;
             }
-            return correct;
         };
     })();
 
@@ -58,10 +81,10 @@ function loadChecker(language: LanguageCode): Promise<WordCheck> {
 async function checkersFor(
     sheetId: string,
     languages: readonly string[]
-): Promise<Map<LanguageCode, WordCheck>> {
+): Promise<Map<LanguageCode, Checker>> {
     const needed = [...new Set(languages.filter(isLanguageCode))];
     const loaded = await Promise.allSettled(needed.map(loadChecker));
-    const result = new Map<LanguageCode, WordCheck>();
+    const result = new Map<LanguageCode, Checker>();
     loaded.forEach((outcome, index) => {
         const language = needed[index];
         if (outcome.status === 'fulfilled') {
@@ -76,6 +99,21 @@ async function checkersFor(
         }
     });
     return result;
+}
+
+/** Every misspelled word in a cell, each with its suggestions. */
+function flagWords(
+    text: string,
+    checker: Checker,
+    ignored: ReadonlySet<string>
+): WordFlag[] {
+    return findMisspellings(text, checker.check, ignored).map((range) => ({
+        ...range,
+        // Hunspell expects straight apostrophes, as the check does.
+        suggestions: checker.suggest(
+            text.slice(range.start, range.end).replace(/’/g, "'")
+        )
+    }));
 }
 
 async function checkSheet(
@@ -99,12 +137,12 @@ async function checkSheet(
                 });
             }
             const language = languages[column];
-            const check =
+            const checker =
                 language && isLanguageCode(language)
                     ? checks.get(language)
                     : undefined;
-            if (!check || text === '') return;
-            const ranges = findMisspellings(text, check, ignored);
+            if (!checker || text === '') return;
+            const ranges = flagWords(text, checker, ignored);
             if (ranges.length > 0) {
                 flags.push({ row: rowIndex, column, text, ranges });
             }
@@ -118,15 +156,11 @@ async function checkCell(
     request: Extract<SpellcheckRequest, { type: 'check-cell' }>
 ) {
     const { sheetId, row, column, text, language } = request;
-    let ranges: CellFlags['ranges'] = [];
+    let ranges: WordFlag[] = [];
     if (isLanguageCode(language) && text !== '') {
-        const check = (await checkersFor(sheetId, [language])).get(language);
-        if (check) {
-            ranges = findMisspellings(
-                text,
-                check,
-                new Set(request.ignoredWords)
-            );
+        const checker = (await checkersFor(sheetId, [language])).get(language);
+        if (checker) {
+            ranges = flagWords(text, checker, new Set(request.ignoredWords));
         }
     }
     post({ type: 'cell-result', sheetId, cell: { row, column, text, ranges } });

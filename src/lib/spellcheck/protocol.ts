@@ -2,12 +2,21 @@ import type { ColumnLanguage, LanguageCode } from '$lib/languages/codes';
 
 import type { MisspellingRange } from './tokenize';
 
+/** A misspelled word's position and Hunspell's suggestions, best first. */
+export type WordFlag = MisspellingRange & {
+    /** At most `MAX_SUGGESTIONS`; empty when Hunspell has none. */
+    suggestions: string[];
+};
+
+/** The top suggestion plus a couple of runners-up. */
+export const MAX_SUGGESTIONS = 3;
+
 /** The misspellings found in one cell, with the exact text that was checked. */
 export type CellFlags = {
     row: number;
     column: number;
     text: string;
-    ranges: MisspellingRange[];
+    ranges: WordFlag[];
 };
 
 export type SpellcheckRequest =

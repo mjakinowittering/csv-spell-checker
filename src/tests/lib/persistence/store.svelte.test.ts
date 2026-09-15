@@ -101,7 +101,7 @@ describe('WorkbookStore', () => {
                 row: 1,
                 column: 0,
                 text: 'Recieve',
-                ranges: [{ start: 0, end: 7 }]
+                ranges: [{ start: 0, end: 7, suggestions: ['Receive'] }]
             }
         ]);
         expect(sheet.issueCount).toBe(1);

@@ -11,9 +11,19 @@
         args: {
             open: true,
             words: [
-                { key: 'hikking', word: 'hikking', count: 4 },
-                { key: 'recieve', word: 'Recieve', count: 2 },
-                { key: 'adress', word: 'adress', count: 1 }
+                {
+                    key: 'hikking',
+                    word: 'hikking',
+                    count: 4,
+                    suggestion: 'hiking'
+                },
+                {
+                    key: 'recieve',
+                    word: 'Recieve',
+                    count: 2,
+                    suggestion: 'Receive'
+                },
+                { key: 'adress', word: 'adress', count: 1, suggestion: null }
             ],
             onignore: fn()
         }

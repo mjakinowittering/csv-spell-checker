@@ -95,12 +95,12 @@ disabled until every column has a language). English maps to en-US only for an
 factory through `DetectOptions`.
 
 The confirmation screen (`components/languages/`) is `LanguageConfirmation`:
-the sheet-wide `LanguageSelect` fills its row, notices sit under it, and the
-footer holds the "Override individual columns (N columns)" trigger on the left
-with Cancel/Continue on the right. Expanding (`overridesOpen`, bindable) hides
-that trigger and shows `ColumnLanguageOverrides` (per-column `LanguageSelect`s,
-`languages` bindable) between the picker and the footer, with a "Hide
-individual columns" collapse trigger at its top. Confirming stores
+the sheet-wide `LanguageSelect` fills its row, notices sit under it, then one
+row that **never moves**: the "Override individual columns (N columns)" toggle
+on the left and Cancel/Continue on the right. Expanding (`overridesOpen`,
+bindable) relabels that same toggle "Hide individual columns" and opens
+`ColumnLanguageOverrides` (per-column `LanguageSelect`s, `languages` bindable)
+below the row. Confirming stores
 `sheet.languages` and `sheet.sheetLanguage` (null when columns differ).
 
 ## Protocol

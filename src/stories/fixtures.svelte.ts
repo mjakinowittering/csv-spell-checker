@@ -7,7 +7,14 @@ import type { CellFlags } from '$lib/spellcheck/protocol';
 import { findMisspellings } from '$lib/spellcheck/tokenize';
 import { Sheet } from '$lib/workbook/sheet.svelte';
 
-const MISSPELLED = new Set(['hikking', 'recieve', 'adress', 'teh', 'chiar']);
+/** Stand-in misspellings and the suggestion Hunspell would give each. */
+const MISSPELLED = new Map([
+    ['hikking', 'hiking'],
+    ['recieve', 'receive'],
+    ['adress', 'address'],
+    ['teh', 'the'],
+    ['chiar', 'chair']
+]);
 
 export const confidentGuess: LanguageGuess = {
     detected: 'en',
@@ -78,7 +85,17 @@ export function applyStoryFlags(sheet: Sheet) {
     const check = (word: string) => !MISSPELLED.has(word.toLowerCase());
     const flags: CellFlags[] = sheet.snapshot().flatMap((cells, row) =>
         cells.flatMap((text, column) => {
-            const ranges = findMisspellings(text, check);
+            const ranges = findMisspellings(text, check).map((range) => {
+                const word = text.slice(range.start, range.end);
+                const suggestion = MISSPELLED.get(word.toLowerCase()) ?? '';
+                // Keep the word's capitalisation, as Hunspell does.
+                const cased =
+                    word[0] === word[0].toUpperCase()
+                        ? suggestion.charAt(0).toUpperCase() +
+                          suggestion.slice(1)
+                        : suggestion;
+                return { ...range, suggestions: [cased] };
+            });
             return ranges.length > 0 ? [{ row, column, text, ranges }] : [];
         })
     );
