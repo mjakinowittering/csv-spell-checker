@@ -19,6 +19,9 @@
     const edited = $derived(sheet.isEdited(row, column));
     const ranges = $derived(sheet.flagRanges(row, column));
     const parts = $derived(ranges ? segments(value, ranges) : null);
+    const current = $derived(
+        sheet.currentIssue?.row === row && sheet.currentIssue.column === column
+    );
 </script>
 
 <!-- Fills the cell so a click anywhere in it opens the editor. Edited tint
@@ -26,11 +29,13 @@
 <span
     data-sheet-row={row}
     data-sheet-column={column}
+    aria-current={current ? 'location' : undefined}
     class={[
         'sheet-cell block h-full w-full cursor-cell truncate px-2 leading-8',
         header && 'font-semibold',
         edited && 'sheet-cell-edited',
-        parts && 'sheet-cell-flagged'
+        parts && 'sheet-cell-flagged',
+        current && 'sheet-cell-current'
     ]}
 >
     {#if parts}

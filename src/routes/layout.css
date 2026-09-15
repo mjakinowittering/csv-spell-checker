@@ -147,6 +147,12 @@
             color-mix(in oklch, var(--destructive) 55%, transparent);
     }
 
+    /* The issue reached with previous/next: an outline outside the ring. */
+    .sheet-cell-current {
+        outline: 2px solid var(--primary);
+        outline-offset: -1px;
+    }
+
     .sheet-misspelling,
     .sheet-cell-flagged-sample {
         text-decoration-line: underline;

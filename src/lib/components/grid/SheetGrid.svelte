@@ -89,6 +89,35 @@
 
     const hotkeys = { enter: openFocusedCell, f2: openFocusedCell };
 
+    // Issue navigation: bring the current issue into view. Body cells also
+    // get keyboard focus, so Enter opens the issue in the editor. The header
+    // row never scrolls vertically, so it only needs horizontal scrolling.
+    // (Calls into the grid's API only; no Svelte state is written here.)
+    $effect(() => {
+        const target = sheet.currentIssue;
+        const grid = api;
+        if (!target || !grid) return;
+        const column = columnId(target.column);
+        if (target.row === 0) {
+            grid.exec('scroll', { column });
+            return;
+        }
+        const row = target.row;
+        let frame = 0;
+        grid.exec('scroll', { row, column }).then(() => {
+            // A row scrolled into view only renders on the next frame, and
+            // the grid can only focus a rendered cell.
+            frame = requestAnimationFrame(() =>
+                grid.exec('focus-cell', {
+                    row,
+                    column,
+                    eventSource: 'navigation'
+                })
+            );
+        });
+        return () => cancelAnimationFrame(frame);
+    });
+
     // One listener for every cell (header row included). Cell components fill
     // their cell and carry their sheet coordinates, so no control lives inside
     // a cell and cells stay read-only at rest.

@@ -16,6 +16,10 @@
 
     import { languageLabel } from '$lib/languages/labels';
     import { m } from '$lib/paraglide/messages';
+    import {
+        adjacentIssue,
+        type IssueDirection
+    } from '$lib/spellcheck/navigation';
     import { Spellchecker } from '$lib/spellcheck/spellchecker';
     import { importFiles, importPastedText } from '$lib/workbook/importer';
     import type { Sheet } from '$lib/workbook/sheet.svelte';
@@ -98,6 +102,18 @@
         const sheet = ready;
         const edit = sheet?.redo();
         if (sheet && edit) spellchecker.checkCell(sheet, edit.row, edit.column);
+    }
+
+    // The grid scrolls to and focuses whichever issue becomes current.
+    function goToIssue(direction: IssueDirection) {
+        const sheet = ready;
+        if (!sheet) return;
+        const target = adjacentIssue(
+            sheet.flaggedCells(),
+            sheet.currentIssue,
+            direction
+        );
+        if (target) sheet.currentIssue = target;
     }
 
     function isEditable(target: EventTarget | null): boolean {
@@ -191,6 +207,8 @@
         canRedo={ready?.history.canRedo ?? false}
         onundo={undo}
         onredo={redo}
+        onpreviousissue={() => goToIssue('previous')}
+        onnextissue={() => goToIssue('next')}
         onupload={openFilePicker}
     />
 

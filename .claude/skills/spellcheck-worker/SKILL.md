@@ -84,3 +84,13 @@ when the elided word is correct. Offsets are UTF-16, as used by `String.slice`.
 `SheetCellText` puts `sheet-cell-flagged` (inset ring) on a flagged cell and wraps
 each misspelled range in `sheet-misspelling` (wavy destructive underline). Both
 classes live in `layout.css`; the status bar legend reuses them.
+
+## Issue navigation
+
+The toolbar's previous/next buttons move `sheet.currentIssue` with
+`adjacentIssue()` (`src/lib/spellcheck/navigation.ts`): reading order, row by
+row then left to right, wrapping at both ends. The position is kept after its
+issue is fixed, so navigation continues from the same place. `SheetGrid` watches
+`currentIssue`, scrolls the cell into view and, for body rows, gives it keyboard
+focus on the next frame (a scrolled-in row only renders then) so Enter opens the
+editor. `SheetCellText` outlines the current issue with `sheet-cell-current`.

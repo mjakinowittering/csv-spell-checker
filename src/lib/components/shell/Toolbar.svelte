@@ -1,9 +1,10 @@
 <script lang="ts">
-    import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
-    import ChevronUpIcon from '@lucide/svelte/icons/chevron-up';
+    import ChevronLeftIcon from '@lucide/svelte/icons/chevron-left';
+    import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
     import DownloadIcon from '@lucide/svelte/icons/download';
     import Redo2Icon from '@lucide/svelte/icons/redo-2';
     import SpellCheckIcon from '@lucide/svelte/icons/spell-check';
+    import TriangleAlertIcon from '@lucide/svelte/icons/triangle-alert';
     import Undo2Icon from '@lucide/svelte/icons/undo-2';
     import UploadIcon from '@lucide/svelte/icons/upload';
 
@@ -93,17 +94,22 @@
                 <Spinner stroke="currentColor" class="size-3" />
                 {m.toolbar_checking()}
             {:else}
-                {m.toolbar_issues_count({ count: issueCount })}
+                {#if issueCount > 0}
+                    <TriangleAlertIcon aria-hidden="true" />
+                {/if}
+                {issueCount === 1
+                    ? m.toolbar_issues_one()
+                    : m.toolbar_issues_count({ count: issueCount })}
             {/if}
         </Badge>
         <ToolbarButton
-            icon={ChevronUpIcon}
+            icon={ChevronLeftIcon}
             label={m.toolbar_issue_previous_hint()}
             disabled={issueCount === 0 || !onpreviousissue}
             onclick={onpreviousissue}
         />
         <ToolbarButton
-            icon={ChevronDownIcon}
+            icon={ChevronRightIcon}
             label={m.toolbar_issue_next_hint()}
             disabled={issueCount === 0 || !onnextissue}
             onclick={onnextissue}

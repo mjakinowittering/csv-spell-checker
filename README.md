@@ -66,7 +66,7 @@ _No open bugs._
 #### Spellcheck
 
 - [x] **Spellcheck worker** — a Web Worker checks every non-ignored column with Typo.js Hunspell dictionaries, flags cells with a squiggly underline and ring, and re-checks only the edited cell after a change.
-- [ ] **Spelling-issue navigation** — the toolbar counter shows the issue count and next/previous jumps between flagged cells.
+- [x] **Spelling-issue navigation** — the toolbar counter shows the issue count and next/previous jumps between flagged cells.
 - [ ] **Migrate to hunspell-wasm** — replace Typo.js with the WebAssembly Hunspell build, which loads every dictionary in under 100ms (Typo.js takes 3.4s and 322MB for French) and can load Italian, so Italian can come back into scope.
 
 #### Export

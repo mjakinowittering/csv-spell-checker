@@ -59,6 +59,12 @@ export class Sheet {
     /** Number of flagged cells. */
     issueCount = $derived(this.#flags.size);
 
+    /**
+     * The issue last reached with previous/next. Kept after that issue is
+     * fixed, so navigation carries on from the same place.
+     */
+    currentIssue = $state<CellPosition | null>(null);
+
     // Cells changed while a full-sheet check was running. Their own
     // single-cell re-check is authoritative over the full-sheet result.
     // Bookkeeping only, never rendered, so deliberately not reactive.
