@@ -20,6 +20,7 @@
 
     let {
         issueCount,
+        sheetOpen,
         checking = false,
         hasSheet,
         canUndo,
@@ -32,7 +33,10 @@
         onupload
     }: {
         issueCount: number;
+        /** Any tab is open. Sheet controls are hidden until then. */
+        sheetOpen: boolean;
         checking?: boolean;
+        /** The active sheet is ready: its grid is showing. */
         hasSheet: boolean;
         canUndo: boolean;
         canRedo: boolean;
@@ -55,74 +59,83 @@
         >
             <SpellCheckIcon class="size-4" />
         </div>
-        <span class="text-sm font-semibold max-sm:sr-only">
+        <span class={['text-sm font-semibold', sheetOpen && 'max-sm:sr-only']}>
             {m.app_title()}
         </span>
     </div>
 
-    <Separator
-        orientation="vertical"
-        class="mx-1 data-vertical:h-5 data-vertical:self-center max-sm:hidden"
-    />
-
-    <ButtonGroup.Root>
-        <ToolbarButton
-            icon={Undo2Icon}
-            label={m.toolbar_undo_hint()}
-            disabled={!canUndo || !onundo}
-            onclick={onundo}
+    {#if sheetOpen}
+        <Separator
+            orientation="vertical"
+            class="mx-1 data-vertical:h-5 data-vertical:self-center max-sm:hidden"
         />
-        <ToolbarButton
-            icon={Redo2Icon}
-            label={m.toolbar_redo_hint()}
-            disabled={!canRedo || !onredo}
-            onclick={onredo}
+
+        <ButtonGroup.Root>
+            <ToolbarButton
+                icon={Undo2Icon}
+                label={m.toolbar_undo_hint()}
+                disabled={!canUndo || !onundo}
+                onclick={onundo}
+            />
+            <ToolbarButton
+                icon={Redo2Icon}
+                label={m.toolbar_redo_hint()}
+                disabled={!canRedo || !onredo}
+                onclick={onredo}
+            />
+        </ButtonGroup.Root>
+    {/if}
+
+    <!-- Issues only mean something once the grid is showing. -->
+    {#if hasSheet}
+        <Separator
+            orientation="vertical"
+            class="mx-1 data-vertical:h-5 data-vertical:self-center max-sm:hidden"
         />
-    </ButtonGroup.Root>
 
-    <Separator
-        orientation="vertical"
-        class="mx-1 data-vertical:h-5 data-vertical:self-center max-sm:hidden"
-    />
-
-    <div class="flex items-center gap-1">
-        <Badge
-            variant={!checking && issueCount > 0 ? 'destructive' : 'secondary'}
-            aria-live="polite"
-        >
-            {#if checking}
-                <Spinner stroke="currentColor" class="size-3" />
-                {m.toolbar_checking()}
-            {:else}
-                {#if issueCount > 0}
-                    <TriangleAlertIcon aria-hidden="true" />
+        <div class="flex items-center gap-1">
+            <Badge
+                variant={!checking && issueCount > 0
+                    ? 'destructive'
+                    : 'secondary'}
+                aria-live="polite"
+            >
+                {#if checking}
+                    <Spinner stroke="currentColor" class="size-3" />
+                    {m.toolbar_checking()}
+                {:else}
+                    {#if issueCount > 0}
+                        <TriangleAlertIcon aria-hidden="true" />
+                    {/if}
+                    {issueCount === 1
+                        ? m.toolbar_issues_one()
+                        : m.toolbar_issues_count({ count: issueCount })}
                 {/if}
-                {issueCount === 1
-                    ? m.toolbar_issues_one()
-                    : m.toolbar_issues_count({ count: issueCount })}
-            {/if}
-        </Badge>
-        <ToolbarButton
-            icon={ChevronLeftIcon}
-            label={m.toolbar_issue_previous_hint()}
-            disabled={issueCount === 0 || !onpreviousissue}
-            onclick={onpreviousissue}
-        />
-        <ToolbarButton
-            icon={ChevronRightIcon}
-            label={m.toolbar_issue_next_hint()}
-            disabled={issueCount === 0 || !onnextissue}
-            onclick={onnextissue}
-        />
-    </div>
+            </Badge>
+            <ToolbarButton
+                icon={ChevronLeftIcon}
+                label={m.toolbar_issue_previous_hint()}
+                disabled={issueCount === 0 || !onpreviousissue}
+                onclick={onpreviousissue}
+            />
+            <ToolbarButton
+                icon={ChevronRightIcon}
+                label={m.toolbar_issue_next_hint()}
+                disabled={issueCount === 0 || !onnextissue}
+                onclick={onnextissue}
+            />
+        </div>
+    {/if}
 
     <div class="ml-auto flex items-center gap-1">
-        <ToolbarButton
-            icon={DownloadIcon}
-            label={m.toolbar_download_hint()}
-            disabled={!hasSheet || !ondownload}
-            onclick={ondownload}
-        />
+        {#if hasSheet}
+            <ToolbarButton
+                icon={DownloadIcon}
+                label={m.toolbar_download_hint()}
+                disabled={!ondownload}
+                onclick={ondownload}
+            />
+        {/if}
         <ToolbarButton
             icon={UploadIcon}
             label={m.toolbar_upload_hint()}

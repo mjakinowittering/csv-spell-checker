@@ -1,5 +1,4 @@
 <script lang="ts">
-    import UploadIcon from '@lucide/svelte/icons/upload';
     import { base } from '$app/paths';
     import { toast } from 'svelte-sonner';
 
@@ -11,7 +10,6 @@
     import SheetTabs from '$lib/components/shell/SheetTabs.svelte';
     import StatusBar from '$lib/components/shell/StatusBar.svelte';
     import Toolbar from '$lib/components/shell/Toolbar.svelte';
-    import { Button } from '$lib/components/ui/button';
     import { Input } from '$lib/components/ui/input';
 
     import { csvFileName, downloadCsv } from '$lib/csv/download';
@@ -58,7 +56,16 @@
     let editing = $state<EditTarget | null>(null);
 
     const active = $derived(workbook.active);
-    const ready = $derived(active?.phase.kind === 'ready' ? active : null);
+
+    // The active sheet once its grid is showing. A plain function, not
+    // $derived: as a derived it went stale when a second sheet became ready
+    // while the toolbar blocks reading it were torn down and recreated, and
+    // the toolbar and status bar stayed in the not-ready state until the tab
+    // was switched. Reading the phase on every call avoids that.
+    function readySheet(): Sheet | null {
+        const sheet = workbook.active;
+        return sheet?.phase.kind === 'ready' ? sheet : null;
+    }
 
     function openFilePicker() {
         fileInput?.click();
@@ -103,20 +110,20 @@
     }
 
     function undo() {
-        const sheet = ready;
+        const sheet = readySheet();
         const edit = sheet?.undo();
         if (sheet && edit) spellchecker.checkCell(sheet, edit.row, edit.column);
     }
 
     function redo() {
-        const sheet = ready;
+        const sheet = readySheet();
         const edit = sheet?.redo();
         if (sheet && edit) spellchecker.checkCell(sheet, edit.row, edit.column);
     }
 
     // The grid scrolls to and focuses whichever issue becomes current.
     function goToIssue(direction: IssueDirection) {
-        const sheet = ready;
+        const sheet = readySheet();
         if (!sheet) return;
         const target = adjacentIssue(
             sheet.flaggedCells(),
@@ -136,7 +143,7 @@
 
     function onkeydown(event: KeyboardEvent) {
         // Text fields keep their own undo; the dialog owns the keyboard.
-        if (editing || !ready || isEditable(event.target)) return;
+        if (editing || !readySheet() || isEditable(event.target)) return;
         if (!(event.ctrlKey || event.metaKey)) return;
         const key = event.key.toLowerCase();
         if (key === 'z') {
@@ -210,38 +217,31 @@
 
 <div class="bg-background flex h-dvh flex-col">
     <Toolbar
-        issueCount={ready?.issueCount ?? 0}
-        checking={ready?.checkState === 'checking'}
-        hasSheet={ready !== null}
-        canUndo={ready?.history.canUndo ?? false}
-        canRedo={ready?.history.canRedo ?? false}
+        issueCount={readySheet()?.issueCount ?? 0}
+        sheetOpen={active !== null}
+        checking={readySheet()?.checkState === 'checking'}
+        hasSheet={readySheet() !== null}
+        canUndo={readySheet()?.history.canUndo ?? false}
+        canRedo={readySheet()?.history.canRedo ?? false}
         onundo={undo}
         onredo={redo}
         onpreviousissue={() => goToIssue('previous')}
         onnextissue={() => goToIssue('next')}
         ondownload={() => {
-            if (ready) exportSheet(ready);
+            const sheet = readySheet();
+            if (sheet) exportSheet(sheet);
         }}
         onupload={openFilePicker}
     />
 
     <main class="min-h-0 flex-1 overflow-hidden">
         {#if active === null}
-            <EmptyState>
-                {#snippet actions()}
-                    <div class="flex flex-col items-center gap-2">
-                        <Button onclick={openFilePicker}>
-                            <UploadIcon />
-                            {m.import_upload_action()}
-                        </Button>
-                        <p class="text-muted-foreground text-xs">
-                            {m.import_paste_hint()}
-                        </p>
-                    </div>
-                {/snippet}
-            </EmptyState>
+            <EmptyState
+                onupload={openFilePicker}
+                onpaste={pasteFromClipboard}
+            />
         {:else if active.phase.kind === 'parsing'}
-            <SheetLoading name={active.name} progress={active.phase.progress} />
+            <SheetLoading progress={active.phase.progress} />
         {:else if active.phase.kind === 'confirming'}
             {@const sheet = active}
             {#key sheet.id}
@@ -278,7 +278,8 @@
         rowCount={active && active.phase.kind !== 'parsing'
             ? active.rows.length
             : null}
-        legend={ready !== null}
+        pending={active?.phase.kind === 'parsing'}
+        legend={readySheet() !== null}
     />
 </div>
 

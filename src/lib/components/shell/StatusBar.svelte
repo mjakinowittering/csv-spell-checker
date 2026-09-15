@@ -3,9 +3,12 @@
 
     let {
         rowCount,
+        pending = false,
         legend = false
     }: {
         rowCount: number | null;
+        /** A sheet is still being read: its row count is not known yet. */
+        pending?: boolean;
         legend?: boolean;
     } = $props();
 </script>
@@ -15,6 +18,8 @@
 >
     {#if rowCount !== null}
         <span aria-live="polite">{m.status_rows({ count: rowCount })}</span>
+    {:else if pending}
+        <span>{m.status_rows_pending()}</span>
     {/if}
     {#if legend}
         <span class="bg-border h-3 w-px" aria-hidden="true"></span>

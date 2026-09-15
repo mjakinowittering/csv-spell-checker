@@ -147,10 +147,17 @@
             color-mix(in oklch, var(--destructive) 55%, transparent);
     }
 
-    /* The issue reached with previous/next: an outline outside the ring. */
+    /* The issue reached with previous/next: a primary ring, drawn inside the
+       red flag ring so both stay visible. */
     .sheet-cell-current {
-        outline: 2px solid var(--primary);
-        outline-offset: -1px;
+        box-shadow: inset 0 0 0 2px var(--primary);
+    }
+
+    .sheet-cell-flagged.sheet-cell-current {
+        box-shadow:
+            inset 0 0 0 2px
+                color-mix(in oklch, var(--destructive) 55%, transparent),
+            inset 0 0 0 4px var(--primary);
     }
 
     .sheet-misspelling,
