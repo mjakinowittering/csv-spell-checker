@@ -4,6 +4,8 @@
     import { columnLanguageLabel } from '$lib/languages/labels';
     import { m } from '$lib/paraglide/messages';
 
+    import StatusLegend from './StatusLegend.svelte';
+
     let {
         rowCount,
         pending = false,
@@ -46,21 +48,8 @@
     {#if legend}
         <span class="bg-border h-3 w-px max-sm:hidden" aria-hidden="true"
         ></span>
-        <span class="flex items-center gap-1.5 max-sm:hidden">
-            <span
-                aria-hidden="true"
-                class="sheet-cell-flagged-sample rounded-sm px-1 leading-4"
-            >
-                abc
-            </span>
-            {m.status_legend_flagged()}
-        </span>
-        <span class="flex items-center gap-1.5 max-sm:hidden">
-            <span
-                aria-hidden="true"
-                class="sheet-cell-edited size-3 rounded-sm border"
-            ></span>
-            {m.status_legend_edited()}
+        <span class="flex items-center gap-4 max-sm:hidden">
+            <StatusLegend />
         </span>
     {/if}
 </footer>

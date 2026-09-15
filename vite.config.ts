@@ -87,29 +87,30 @@ export default defineConfig({
                     exclude: ['src/**/*.svelte.{test,spec}.{js,ts}']
                 }
             },
-            {
-                extends: true,
+            // Every story runs twice, once per theme, with its a11y checks.
+            ...(['light', 'dark'] as const).map((theme) => ({
+                extends: true as const,
                 plugins: [
-                    // The plugin will run tests for the stories defined in your Storybook config
-                    // See options at: https://storybook.js.org/docs/next/writing-tests/integrations/vitest-addon#storybooktest
+                    // See https://storybook.js.org/docs/next/writing-tests/integrations/vitest-addon#storybooktest
                     storybookTest({
                         configDir: path.join(dirname, '.storybook')
                     })
                 ],
                 test: {
-                    name: 'storybook',
+                    name: `storybook-${theme}`,
+                    setupFiles: [`./.storybook/vitest.setup.${theme}.ts`],
                     browser: {
                         enabled: true,
                         headless: true,
                         provider: playwright({}),
-                        instances: [
-                            {
-                                browser: 'chromium'
-                            }
-                        ]
+                        instances: [{ browser: 'chromium' as const }]
                     }
                 }
-            }
-        ]
+            }))
+        ],
+        // The grid's resize observer can report a harmless loop warning.
+        onUnhandledError(error) {
+            if (error.message?.includes('ResizeObserver loop')) return false;
+        }
     }
 });

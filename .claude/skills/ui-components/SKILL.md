@@ -134,3 +134,33 @@ Theme uses `mode-watcher`:
   between non-CSS themes (e.g. a third-party grid theme). Everything else uses
   the `dark:` variant and the CSS tokens in `src/routes/layout.css`.
 - Never read `prefers-color-scheme` yourself or add a second theme store.
+
+## Stories
+
+Every component under `src/lib/components/` (not `ui/`) has a colocated
+`Name.stories.svelte` (Svelte CSF 5: `defineMeta` in `<script module>`, then
+`<Story>`s). Title is `Folder/Name`, e.g. `Shell/Toolbar`.
+
+- **Drive states from args.** Each visual state is a named `<Story>` with args,
+  and every prop is a control. Large components are split so each piece's
+  states can be shown on its own (`IssueControls`, `StatusLegend`,
+  `ImportSteps`, `SupportedLanguages`, `SheetTab`), and open/expanded state is
+  `$bindable` (`CellEditor` and `FlaggedWordsDialog` `open`,
+  `LanguageConfirmation` `overridesOpen`, `SheetTab` `renaming`).
+- **Callbacks** are `fn()` from `storybook/test`.
+- **Sheets** come from `src/stories/fixtures.svelte.ts`: `storySheet()` builds a
+  sheet in any phase, with edits and flags, and no worker or dictionary (a few
+  stand-in misspellings like "hikking"). Build sheets inside a
+  `{#snippet template(args)}` or at module level, never as control values.
+- **Grid cells** need the grid context and SVAR's props, so their stories render
+  `src/stories/GridCellPreview.svelte` or `SheetCellTextPreview.svelte`.
+- **Theme and providers** come from `.storybook/preview.ts`: the
+  `withThemeByClassName` decorator (`dark` class on `<html>`, like
+  mode-watcher), the app's `layout.css`, and `StoryDecorator.svelte` for the
+  `Tooltip.Provider` the root layout gives the app.
+
+Stories are tests. The `storybook-light` and `storybook-dark` Vitest projects run
+every story in each theme with `a11y: { test: 'error' }`, so any axe violation
+fails the run. Fix violations in the component; only switch a rule off for
+markup the app cannot change, in that story's `parameters.a11y.config`, with a
+comment saying why (`SheetGrid`: SVAR's resize grips and row index).

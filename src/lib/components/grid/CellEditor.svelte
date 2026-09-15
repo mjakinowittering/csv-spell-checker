@@ -21,7 +21,8 @@
         issues = [],
         onconfirm,
         onignoreword,
-        onclosed
+        onclosed,
+        open = $bindable(true)
     }: {
         row: number;
         column: number;
@@ -33,6 +34,12 @@
         /** Ignore a flagged word across the whole sheet. */
         onignoreword?: (word: string) => void;
         onclosed: () => void;
+        /**
+         * Opens with the editor. It always closes through this state, so
+         * bits-ui can tear down its dismiss layer: unmounting it while open
+         * leaves that layer behind and the next editor ignores overlay clicks.
+         */
+        open?: boolean;
     } = $props();
 
     // The parent mounts a fresh editor per edit, so the draft always starts
@@ -43,11 +50,6 @@
     let draft = $state(initialDraft());
 
     const grammarlyId = $props.id();
-
-    // The dialog always closes through its own `open` state, so bits-ui can
-    // tear down its dismiss layer. Unmounting it while open leaves that layer
-    // behind and the next editor ignores overlay clicks.
-    let open = $state(true);
 
     function confirm() {
         onconfirm(draft);

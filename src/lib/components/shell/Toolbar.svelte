@@ -1,23 +1,18 @@
 <script lang="ts">
-    import ChevronLeftIcon from '@lucide/svelte/icons/chevron-left';
-    import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
     import DownloadIcon from '@lucide/svelte/icons/download';
     import Redo2Icon from '@lucide/svelte/icons/redo-2';
     import SpellCheckIcon from '@lucide/svelte/icons/spell-check';
-    import TriangleAlertIcon from '@lucide/svelte/icons/triangle-alert';
     import Undo2Icon from '@lucide/svelte/icons/undo-2';
     import UploadIcon from '@lucide/svelte/icons/upload';
 
     import LanguageFlags from '$lib/components/languages/LanguageFlags.svelte';
-    import { Badge } from '$lib/components/ui/badge';
-    import { Button } from '$lib/components/ui/button';
     import * as ButtonGroup from '$lib/components/ui/button-group';
     import { Separator } from '$lib/components/ui/separator';
-    import { Spinner } from '$lib/components/ui/spinner';
 
     import type { LanguageCode } from '$lib/languages/codes';
     import { m } from '$lib/paraglide/messages';
 
+    import IssueControls from './IssueControls.svelte';
     import ThemeToggle from './ThemeToggle.svelte';
     import ToolbarButton from './ToolbarButton.svelte';
 
@@ -101,58 +96,13 @@
             orientation="vertical"
             class="mx-1 data-vertical:h-5 data-vertical:self-center max-sm:hidden"
         />
-
-        <div class="flex items-center gap-1">
-            {#snippet issuesBadge()}
-                <Badge
-                    variant={!checking && issueCount > 0
-                        ? 'destructive'
-                        : 'secondary'}
-                    aria-live="polite"
-                >
-                    {#if checking}
-                        <Spinner stroke="currentColor" class="size-3" />
-                        {m.toolbar_checking()}
-                    {:else}
-                        {#if issueCount > 0}
-                            <TriangleAlertIcon aria-hidden="true" />
-                        {/if}
-                        {issueCount === 1
-                            ? m.toolbar_issues_one()
-                            : m.toolbar_issues_count({ count: issueCount })}
-                    {/if}
-                </Badge>
-            {/snippet}
-
-            <!-- With issues to show, the badge opens the flagged words. -->
-            {#if onshowissues && !checking && issueCount > 0}
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    aria-haspopup="dialog"
-                    title={m.toolbar_issues_open_hint()}
-                    class="h-auto rounded-full p-0"
-                    onclick={onshowissues}
-                >
-                    {@render issuesBadge()}
-                    <span class="sr-only">{m.toolbar_issues_open_hint()}</span>
-                </Button>
-            {:else}
-                {@render issuesBadge()}
-            {/if}
-            <ToolbarButton
-                icon={ChevronLeftIcon}
-                label={m.toolbar_issue_previous_hint()}
-                disabled={issueCount === 0 || !onpreviousissue}
-                onclick={onpreviousissue}
-            />
-            <ToolbarButton
-                icon={ChevronRightIcon}
-                label={m.toolbar_issue_next_hint()}
-                disabled={issueCount === 0 || !onnextissue}
-                onclick={onnextissue}
-            />
-        </div>
+        <IssueControls
+            {issueCount}
+            {checking}
+            {onshowissues}
+            {onpreviousissue}
+            {onnextissue}
+        />
     {/if}
 
     {#if hasSheet && languages.length > 0}

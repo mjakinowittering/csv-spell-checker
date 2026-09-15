@@ -61,7 +61,7 @@
                 {#if hidden > 0}
                     <Avatar.GroupCount
                         class={[
-                            'text-[0.625rem]',
+                            'text-foreground text-[0.625rem]',
                             size === 'xs' ? 'size-5' : 'size-6'
                         ]}
                     >

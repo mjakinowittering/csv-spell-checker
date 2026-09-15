@@ -88,4 +88,4 @@ _No open bugs._
 
 #### Tooling
 
-- [ ] **Storybook for every component** — a story per component (large ones split into smaller bindable pieces), a light/dark theme toggle, and every story accessibility-checked in both themes.
+- [x] **Storybook for every component** — a story per component (large ones split into smaller bindable pieces), a light/dark theme toggle, and every story accessibility-checked in both themes.

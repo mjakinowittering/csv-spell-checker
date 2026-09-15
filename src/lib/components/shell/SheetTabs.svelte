@@ -34,21 +34,19 @@
     aria-label={m.tabs_label()}
     class="bg-muted/50 flex h-10 shrink-0 items-center gap-1 border-t px-1.5"
 >
-    <div
-        role="tablist"
-        aria-label={m.tabs_label()}
-        class="flex min-w-0 items-center gap-1 overflow-x-auto py-1"
-    >
+    <ul class="flex min-w-0 items-center gap-1 overflow-x-auto py-1">
         {#each sheets as sheet (sheet.id)}
-            <SheetTab
-                {sheet}
-                active={sheet.id === activeId}
-                onactivate={() => onactivate(sheet.id)}
-                onclose={() => onclose(sheet.id)}
-                onrename={(name) => onrename(sheet.id, name)}
-            />
+            <li class="shrink-0">
+                <SheetTab
+                    {sheet}
+                    active={sheet.id === activeId}
+                    onactivate={() => onactivate(sheet.id)}
+                    onclose={() => onclose(sheet.id)}
+                    onrename={(name) => onrename(sheet.id, name)}
+                />
+            </li>
         {/each}
-    </div>
+    </ul>
 
     <DropdownMenu.Root>
         <DropdownMenu.Trigger aria-label={m.tabs_add_label()}>

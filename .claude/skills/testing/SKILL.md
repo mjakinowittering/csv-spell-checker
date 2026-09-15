@@ -1,21 +1,32 @@
 ---
 name: testing
-description: The Vitest strategy for the CSV Spell Checker — the three vitest projects (server/client/storybook), where tests live, and what must be tested (CSV round-trip, word tokenising, language sampling, edit history, stale spellcheck results). Load when writing or running tests, or before committing changes under `src/lib/csv/`, `src/lib/spellcheck/`, `src/lib/languages/` or `src/lib/workbook/`.
+description: The Vitest strategy for the CSV Spell Checker — the four vitest projects (server/client/storybook-light/storybook-dark), where tests live, and what must be tested (CSV round-trip, word tokenising, language sampling, edit history, stale spellcheck results). Load when writing or running tests, or before committing changes under `src/lib/csv/`, `src/lib/spellcheck/`, `src/lib/languages/` or `src/lib/workbook/`.
 ---
 
 # Testing
 
-Vitest, configured inside `vite.config.ts` (no separate vitest config). Three
+Vitest, configured inside `vite.config.ts` (no separate vitest config). Four
 projects:
 
-| Project     | Environment           | Picks up                                               |
-| ----------- | --------------------- | ------------------------------------------------------ |
-| `server`    | node                  | `src/**/*.{test,spec}.ts` — pure logic                 |
-| `client`    | chromium (playwright) | `src/**/*.svelte.{test,spec}.ts` — DOM, runes, workers |
-| `storybook` | chromium              | every story, as a render smoke test                    |
+| Project           | Environment           | Picks up                                               |
+| ----------------- | --------------------- | ------------------------------------------------------ |
+| `server`          | node                  | `src/**/*.{test,spec}.ts` — pure logic                 |
+| `client`          | chromium (playwright) | `src/**/*.svelte.{test,spec}.ts` — DOM, runes, workers |
+| `storybook-light` | chromium              | every story, light theme, with axe a11y checks         |
+| `storybook-dark`  | chromium              | every story, dark theme, with axe a11y checks          |
 
-`npm run test` runs all three once. Run one project with
+`npm run test` runs them all once. Run one project with
 `npx vitest run --project server`.
+
+The two storybook projects share one config and differ only in their setup file
+(`.storybook/vitest.setup.light.ts` / `.dark.ts`), which sets the `theme` global
+the `withThemeByClassName` decorator reads. `a11y: { test: 'error' }` in
+`.storybook/preview.ts` makes any axe violation fail the story, so contrast is
+checked in both themes. See the ui-components skill for writing stories.
+
+A browser test file that fails with "Failed to fetch dynamically imported
+module" right after adding a dependency is Vite re-optimising it mid-run:
+re-run before debugging.
 
 The bar is not coverage. It is: **the things that could corrupt the user's data or
 mislead them about spelling are tested, against real inputs.**

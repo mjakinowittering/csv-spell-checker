@@ -39,6 +39,7 @@
     "import_clipboard_empty_error": "The clipboard has no text to paste.",
     "status_rows": "Rows: {count}",
     "status_rows_pending": "Rows: –",
+    "grid_row_numbers_label": "Row numbers",
     "tabs_rename_action": "Rename",
     "tabs_rename_label": "Rename {name}",
     "tabs_close_action": "Close",

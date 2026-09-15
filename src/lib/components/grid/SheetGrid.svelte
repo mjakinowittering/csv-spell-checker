@@ -15,6 +15,7 @@
     import { m } from '$lib/paraglide/messages';
     import type { Sheet } from '$lib/workbook/sheet.svelte';
 
+    import CornerHeaderCell from './CornerHeaderCell.svelte';
     import DataCell from './DataCell.svelte';
     import {
         columnId,
@@ -52,7 +53,7 @@
             id: ROW_NUMBER_COLUMN,
             width: 52,
             header: [
-                { text: '', css: 'sheet-corner' },
+                { cell: CornerHeaderCell, css: 'sheet-corner' },
                 { text: '1', css: 'sheet-row-number' }
             ],
             cell: RowNumberCell

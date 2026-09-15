@@ -21,7 +21,9 @@ function setup() {
 }
 
 function tab(): HTMLElement {
-    const element = document.querySelector<HTMLElement>('[role="tab"]');
+    const element = document.querySelector<HTMLElement>(
+        '[data-sheet-tab-button]'
+    );
     if (!element) throw new Error('No tab');
     return element;
 }
@@ -107,7 +109,7 @@ describe('SheetTab renaming', () => {
         press(input, 'Enter');
 
         await expect
-            .poll(() => document.querySelector('[role="tab"]'))
+            .poll(() => document.querySelector('[data-sheet-tab-button]'))
             .not.toBeNull();
         press(tab(), 'F2');
         input = await renameField();

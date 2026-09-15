@@ -51,6 +51,7 @@ Load the relevant skill file when working in that domain. Skills defer to this f
 - No `any` in TypeScript.
 - No `console.log`; `console.error` only.
 - All UI copy through shadcn-svelte components; no ad hoc HTML form elements.
+- Every component in `src/lib/components/` (outside `ui/`) has a colocated `*.stories.svelte`. Stories run as tests in both light and dark themes, and an accessibility violation fails the run.
 - Theme defaults to OS-level prefers-color-scheme on first load; manual toggle always available.
 - Status bar is informational only (row count, the selected cell and its column's language); never shows edited-cell counts. It is hidden when no sheet is open; the tab strip and status bar stay anchored at the bottom.
 - Tabs are renamed from their right-click menu (or F2 on a focused tab) through an inline field: Enter or blur saves, Escape cancels, a blank name is ignored. Names persist.

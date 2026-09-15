@@ -96,9 +96,11 @@
                         onblur={() => finishRename(true)}
                     />
                 {:else}
+                    <!-- Sheets are switched with plain buttons, the open one
+                         marked current: there are no tab panels to own. -->
                     <Button
-                        role="tab"
-                        aria-selected={active}
+                        aria-current={active ? 'page' : undefined}
+                        data-sheet-tab-button
                         variant="ghost"
                         size="sm"
                         class="max-w-48 hover:bg-transparent"
