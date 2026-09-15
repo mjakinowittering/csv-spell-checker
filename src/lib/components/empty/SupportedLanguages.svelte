@@ -2,6 +2,7 @@
     import { Badge } from '$lib/components/ui/badge';
 
     import { LANGUAGE_CODES, type LanguageCode } from '$lib/languages/codes';
+    import { languageFlag } from '$lib/languages/flags';
     import { languageLabel } from '$lib/languages/labels';
     import { m } from '$lib/paraglide/messages';
 
@@ -20,7 +21,10 @@
     <ul class="flex flex-wrap justify-center gap-2">
         {#each languages as code (code)}
             <li>
-                <Badge variant="secondary">{languageLabel[code]()}</Badge>
+                <Badge variant="secondary">
+                    <span aria-hidden="true">{languageFlag[code]}</span>
+                    {languageLabel[code]()}
+                </Badge>
             </li>
         {/each}
     </ul>
