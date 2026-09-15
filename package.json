@@ -74,6 +74,7 @@
     },
     "dependencies": {
         "@ianvs/prettier-plugin-sort-imports": "^4.7.1",
+        "country-flag-emoji-polyfill": "^0.1.10",
         "franc": "^6.2.0",
         "idb": "^8.0.3",
         "mode-watcher": "^1.1.0",

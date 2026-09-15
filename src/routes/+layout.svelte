@@ -2,14 +2,20 @@
     import './layout.css';
 
     import { ModeWatcher } from 'mode-watcher';
+    import { onMount } from 'svelte';
 
     import { Toaster } from '$lib/components/ui/sonner';
     import * as Tooltip from '$lib/components/ui/tooltip';
 
     import favicon from '$lib/assets/favicon.svg';
+    import { loadFlagFont } from '$lib/languages/flag-font';
     import { m } from '$lib/paraglide/messages';
 
     let { children } = $props();
+
+    onMount(() => {
+        loadFlagFont();
+    });
 </script>
 
 <svelte:head>

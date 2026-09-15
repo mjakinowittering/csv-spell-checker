@@ -51,5 +51,6 @@ Load the relevant skill file when working in that domain. Skills defer to this f
 - No `console.log`; `console.error` only.
 - All UI copy through shadcn-svelte components; no ad hoc HTML form elements.
 - Theme defaults to OS-level prefers-color-scheme on first load; manual toggle always available.
-- Status bar is informational only (e.g. row count); never shows edited-cell counts.
+- Status bar is informational only (row count, the selected cell and its column's language); never shows edited-cell counts.
+- A ready sheet's spell-check languages are always visible: flag and code in the toolbar (stacked flags for mixed sheets) and a flag before its tab name.
 - Open sheets persist in IndexedDB (via `idb`): cells and edits, name, languages and ignore list. Every action that changes them writes through immediately — never on a timer or on unload. Spelling flags are never stored; they are recomputed by the worker whenever a sheet is loaded.

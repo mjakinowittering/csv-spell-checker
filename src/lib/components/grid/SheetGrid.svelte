@@ -89,6 +89,16 @@
 
     const hotkeys = { enter: openFocusedCell, f2: openFocusedCell };
 
+    function initGrid(gridApi: IApi) {
+        api = gridApi;
+        // The status bar shows the focused cell and its column's language.
+        gridApi.on('focus-cell', ({ row, column }) => {
+            const index = column === undefined ? null : columnIndexOf(column);
+            if (row === undefined || index === null) return;
+            sheet.selectedCell = { row: Number(row), column: index };
+        });
+    }
+
     // Issue navigation: bring the current issue into view. Body cells also
     // get keyboard focus, so Enter opens the issue in the editor. The header
     // row never scrolls vertically, so it only needs horizontal scrolling.
@@ -126,10 +136,11 @@
             if (!(event.target instanceof Element)) return;
             const cell = event.target.closest<HTMLElement>('[data-sheet-row]');
             if (!cell || !node.contains(cell)) return;
-            oneditcell(
-                Number(cell.dataset.sheetRow),
-                Number(cell.dataset.sheetColumn)
-            );
+            const row = Number(cell.dataset.sheetRow);
+            const column = Number(cell.dataset.sheetColumn);
+            // The header row never takes grid focus, so select it here too.
+            sheet.selectedCell = { row, column };
+            oneditcell(row, column);
         }
         node.addEventListener('click', onclick);
         return () => node.removeEventListener('click', onclick);
@@ -145,7 +156,7 @@
         {sizes}
         {hotkeys}
         select={false}
-        init={(gridApi: IApi) => (api = gridApi)}
+        init={initGrid}
     />
 {/snippet}
 

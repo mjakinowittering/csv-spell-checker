@@ -8,12 +8,14 @@
     import Undo2Icon from '@lucide/svelte/icons/undo-2';
     import UploadIcon from '@lucide/svelte/icons/upload';
 
+    import LanguageFlags from '$lib/components/languages/LanguageFlags.svelte';
     import { Badge } from '$lib/components/ui/badge';
     import { Button } from '$lib/components/ui/button';
     import * as ButtonGroup from '$lib/components/ui/button-group';
     import { Separator } from '$lib/components/ui/separator';
     import { Spinner } from '$lib/components/ui/spinner';
 
+    import type { LanguageCode } from '$lib/languages/codes';
     import { m } from '$lib/paraglide/messages';
 
     import ThemeToggle from './ThemeToggle.svelte';
@@ -24,6 +26,7 @@
         sheetOpen,
         checking = false,
         hasSheet,
+        languages = [],
         canUndo,
         canRedo,
         onundo,
@@ -40,6 +43,8 @@
         checking?: boolean;
         /** The active sheet is ready: its grid is showing. */
         hasSheet: boolean;
+        /** The active sheet's checked languages; several means mixed. */
+        languages?: readonly LanguageCode[];
         canUndo: boolean;
         canRedo: boolean;
         onundo?: () => void;
@@ -148,6 +153,14 @@
                 onclick={onnextissue}
             />
         </div>
+    {/if}
+
+    {#if hasSheet && languages.length > 0}
+        <Separator
+            orientation="vertical"
+            class="mx-1 data-vertical:h-5 data-vertical:self-center max-sm:hidden"
+        />
+        <LanguageFlags {languages} />
     {/if}
 
     <div class="ml-auto flex items-center gap-1">

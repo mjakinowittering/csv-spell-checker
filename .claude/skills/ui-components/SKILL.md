@@ -79,6 +79,22 @@ The generated `Spinner` forwards `stroke={undefined}` to lucide's icon, which
 removes lucide's default `stroke="currentColor"` — the spinner renders but is
 invisible. Always pass it: `<Spinner stroke="currentColor" class="size-4" />`.
 
+### Language flags
+
+`LanguageFlags` (`components/languages/`) shows a sheet's checked languages
+(`sheet.checkedLanguages`): one language is its flag emoji plus the code
+(🇬🇧 en-GB); several stack one flag per language in an `Avatar.Group`, with an
+`Avatar.GroupCount` "+N" past `max`, and "Mixed". It is used in the toolbar, before each tab
+name (`showCode={false}`, `size="xs"`), and its visuals are `aria-hidden` with
+an sr-only "Spell-checked in …" label. Flags come from `languageFlag` in
+`src/lib/languages/flags.ts`; the status bar reuses it for the selected cell.
+
+Chromium on Windows cannot draw flag emoji. `loadFlagFont()` (called once from
+the root layout) runs `country-flag-emoji-polyfill` with the package's own
+`TwemojiCountryFlags.woff2` imported via `?url`, so the font is self-hosted and
+only downloaded where needed. `'Twemoji Country Flags'` leads `--font-sans`; its
+`unicode-range` covers flags only, so every other glyph still uses Inter.
+
 ### File pickers
 
 A file picker still goes through shadcn: a visually hidden `Input type="file"`

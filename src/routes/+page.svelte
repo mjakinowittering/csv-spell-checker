@@ -16,6 +16,7 @@
 
     import { csvFileName, downloadCsv } from '$lib/csv/download';
     import { serializeCsv } from '$lib/csv/serialize';
+    import { cellReference } from '$lib/grid/coordinates';
     import { languageLabel } from '$lib/languages/labels';
     import { m } from '$lib/paraglide/messages';
     import { Persistence } from '$lib/persistence/persistence';
@@ -203,6 +204,17 @@
         if (target) sheet.currentIssue = target;
     }
 
+    /** The active sheet's selected cell and its column language, if any. */
+    function selectedCellStatus() {
+        const sheet = readySheet();
+        const cell = sheet?.selectedCell;
+        if (!sheet || !cell) return null;
+        return {
+            cell: cellReference(cell.row, cell.column),
+            language: sheet.languages[cell.column] ?? 'none'
+        };
+    }
+
     function isEditable(target: EventTarget | null): boolean {
         return (
             target instanceof HTMLElement &&
@@ -302,6 +314,7 @@
         onpreviousissue={() => goToIssue('previous')}
         onnextissue={() => goToIssue('next')}
         onshowissues={() => (flaggedWordsOpen = true)}
+        languages={readySheet()?.checkedLanguages ?? []}
         ondownload={() => {
             const sheet = readySheet();
             if (sheet) exportSheet(sheet);
@@ -356,6 +369,7 @@
             ? active.rows.length
             : null}
         pending={active?.phase.kind === 'parsing'}
+        selection={selectedCellStatus()}
         legend={readySheet() !== null}
     />
 </div>

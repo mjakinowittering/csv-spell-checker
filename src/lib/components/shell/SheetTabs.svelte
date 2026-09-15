@@ -4,6 +4,7 @@
     import UploadIcon from '@lucide/svelte/icons/upload';
     import XIcon from '@lucide/svelte/icons/x';
 
+    import LanguageFlags from '$lib/components/languages/LanguageFlags.svelte';
     import { Button } from '$lib/components/ui/button';
     import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
     import { Spinner } from '$lib/components/ui/spinner';
@@ -62,6 +63,12 @@
                             aria-label={m.tabs_parsing_label()}
                         />
                     {/if}
+                    <LanguageFlags
+                        languages={sheet.checkedLanguages}
+                        showCode={false}
+                        size="xs"
+                        max={2}
+                    />
                     <span class="truncate">{sheet.name}</span>
                 </Button>
                 <Button

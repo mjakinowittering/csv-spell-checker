@@ -1,6 +1,10 @@
 import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 
-import type { ColumnLanguage } from '$lib/languages/codes';
+import {
+    isLanguageCode,
+    type ColumnLanguage,
+    type LanguageCode
+} from '$lib/languages/codes';
 import type { LanguageGuess } from '$lib/languages/detect';
 import type { CellFlags } from '$lib/spellcheck/protocol';
 import { ignoreKey, type MisspellingRange } from '$lib/spellcheck/tokenize';
@@ -83,6 +87,17 @@ export class Sheet {
 
     /** One language per column, set only by confirming the language screen. */
     languages = $state.raw<ColumnLanguage[]>([]);
+
+    /** The distinct languages actually spell-checked, in column order. */
+    checkedLanguages = $derived(
+        this.languages.filter(
+            (language, index, all): language is LanguageCode =>
+                isLanguageCode(language) && all.indexOf(language) === index
+        )
+    );
+
+    /** The grid cell last focused or clicked. Not persisted. */
+    selectedCell = $state<CellPosition | null>(null);
 
     /** Words dismissed as false positives for this sheet. */
     readonly ignoredWords = new SvelteSet<string>();

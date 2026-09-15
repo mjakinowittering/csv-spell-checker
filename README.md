@@ -75,7 +75,7 @@ _No open bugs._
 - [x] **Spellcheck worker** — a Web Worker checks every non-ignored column with Typo.js Hunspell dictionaries, flags cells with a squiggly underline and ring, and re-checks only the edited cell after a change.
 - [x] **Spelling-issue navigation** — the toolbar counter shows the issue count and next/previous jumps between flagged cells.
 - [x] **Ignore words** — flagged words show as dismissible chips in the cell editor, and the issue badge opens a sheet-wide summary of flagged words; dismissing a word adds it to the sheet's ignore list and rechecks the whole sheet.
-- [ ] **Language visibility** — flag and language code in the toolbar (stacked flags for mixed sheets), a flag before each tab name, the selected cell's language in the status bar, and a flag-emoji font fallback for Windows.
+- [x] **Language visibility** — flag and language code in the toolbar (stacked flags for mixed sheets), a flag before each tab name, the selected cell's language in the status bar, and a flag-emoji font fallback for Windows.
 - [ ] **Migrate to hunspell-wasm** — replace Typo.js with the WebAssembly Hunspell build, which loads every dictionary in under 100ms (Typo.js takes 3.4s and 322MB for French) and can load Italian, so Italian can come back into scope, along with Portuguese, Dutch, Polish, Swedish, Danish, Norwegian and Czech.
 
 #### Sheets
