@@ -11,7 +11,13 @@ function readySheet(): Sheet {
     ];
     sheet.phase = {
         kind: 'confirming',
-        guess: { language: 'en-GB', confident: true }
+        guess: {
+            detected: 'en',
+            prefill: 'en-GB',
+            confidence: 1,
+            confident: true,
+            source: 'franc'
+        }
     };
     sheet.confirmLanguages(['none', 'en-GB']);
     return sheet;

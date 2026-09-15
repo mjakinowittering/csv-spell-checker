@@ -59,7 +59,7 @@ _No open bugs._
 - [x] **CSV upload and paste** — drag-drop or browse a CSV, or paste tab-separated content; each opens a new "Sheet N" or "Pasted sheet" tab with a bold frozen header row and a parsing progress indicator.
 - [x] **Language detection and confirmation** — Franc samples the first 10 non-header rows for one sheet-wide guess that pre-fills a per-column language screen, with low-confidence warnings, shown for every new sheet.
 
-- [ ] **Language detection overhaul** — Chrome's built-in Language Detector with Franc as the fallback, no pre-filled guess below a confidence threshold, unsupported languages allowed but marked, and a confirmation screen led by one sheet-wide picker with per-column overrides tucked below.
+- [x] **Language detection overhaul** — Chrome's built-in Language Detector with Franc as the fallback, no pre-filled guess below a confidence threshold, unsupported languages allowed but marked, and a confirmation screen led by one sheet-wide picker with per-column overrides tucked below.
 
 #### Persistence
 

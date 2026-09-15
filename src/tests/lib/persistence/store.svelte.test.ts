@@ -20,7 +20,13 @@ function parsedSheet(name: string, rows: string[][]): Sheet {
     sheet.rows = rows;
     sheet.phase = {
         kind: 'confirming',
-        guess: { language: 'en-GB', confident: true }
+        guess: {
+            detected: 'en',
+            prefill: 'en-GB',
+            confidence: 1,
+            confident: true,
+            source: 'franc'
+        }
     };
     return sheet;
 }

@@ -1,143 +1,169 @@
 <script lang="ts">
+    import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
+    import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
     import TriangleAlertIcon from '@lucide/svelte/icons/triangle-alert';
 
-    import { Badge } from '$lib/components/ui/badge';
     import { Button } from '$lib/components/ui/button';
     import * as Card from '$lib/components/ui/card';
-    import * as Select from '$lib/components/ui/select';
+    import * as Collapsible from '$lib/components/ui/collapsible';
 
-    import { columnLetter } from '$lib/grid/coordinates';
-    import {
-        isColumnLanguage,
-        LANGUAGE_CODES,
-        type ColumnLanguage
-    } from '$lib/languages/codes';
+    import { LANGUAGE_CODES, type ColumnLanguage } from '$lib/languages/codes';
     import type { LanguageGuess } from '$lib/languages/detect';
-    import { languageLabel } from '$lib/languages/labels';
+    import { languageName } from '$lib/languages/labels';
     import { m } from '$lib/paraglide/messages';
+
+    import ColumnLanguageOverrides from './ColumnLanguageOverrides.svelte';
+    import LanguageSelect from './LanguageSelect.svelte';
 
     let {
         headers,
         guess,
+        overridesOpen = $bindable(false),
         onconfirm,
         oncancel
     }: {
         headers: readonly string[];
         guess: LanguageGuess;
-        onconfirm: (languages: ColumnLanguage[]) => void;
+        /** Whether the per-column overrides are expanded. */
+        overridesOpen?: boolean;
+        onconfirm: (
+            languages: ColumnLanguage[],
+            sheetLanguage: ColumnLanguage | null
+        ) => void;
         oncancel: () => void;
     } = $props();
 
-    const options: readonly ColumnLanguage[] = [...LANGUAGE_CODES, 'none'];
-
-    // Every column starts on the sheet-wide guess. The parent keys this
-    // component by sheet, so each new sheet starts from its own guess and
-    // nothing carries over from an earlier confirmation.
-    function initialLanguages(): ColumnLanguage[] {
-        return headers.map(() => guess.language);
+    // The parent keys this component by sheet, so every new sheet starts
+    // from its own guess and nothing carries over from an earlier sheet.
+    // Below the confidence threshold the guess is null: nothing is chosen.
+    function initialGuess(): ColumnLanguage | null {
+        return guess.prefill;
     }
+    function initialLanguages(): (ColumnLanguage | null)[] {
+        return headers.map(() => guess.prefill);
+    }
+    let sheetLanguage = $state(initialGuess());
     let languages = $state(initialLanguages());
 
-    function setLanguage(index: number, value: string) {
-        if (isColumnLanguage(value)) languages[index] = value;
+    const options = $derived<ColumnLanguage[]>([
+        ...LANGUAGE_CODES,
+        'none',
+        // Only offered when the detected language is one we cannot check.
+        ...(guess.prefill === 'unsupported' ? (['unsupported'] as const) : [])
+    ]);
+
+    const complete = $derived(
+        languages.every(
+            (language): language is ColumnLanguage => language !== null
+        )
+    );
+
+    /** The sheet-wide picker sets every column at once. */
+    function setSheetLanguage(language: ColumnLanguage) {
+        languages = headers.map(() => language);
+    }
+
+    function confirm() {
+        const chosen = languages.filter(
+            (language): language is ColumnLanguage => language !== null
+        );
+        if (chosen.length !== headers.length) return;
+        const uniform = chosen.every((language) => language === chosen[0]);
+        onconfirm(chosen, uniform ? chosen[0] : null);
     }
 </script>
 
 <div class="flex h-full justify-center overflow-y-auto p-4 sm:p-8">
-    <Card.Root class="h-fit w-full max-w-2xl">
-        <Card.Header>
-            <Card.Title>{m.languages_confirm_title()}</Card.Title>
-        </Card.Header>
+    <Collapsible.Root bind:open={overridesOpen} class="h-fit w-full max-w-2xl">
+        <Card.Root>
+            <Card.Header>
+                <Card.Title>{m.languages_confirm_title()}</Card.Title>
+            </Card.Header>
 
-        <Card.Content>
-            <ul class="divide-y">
-                {#each headers as header, index (index)}
-                    {@const letter = columnLetter(index)}
-                    {@const uncertain =
-                        !guess.confident && languages[index] === guess.language}
-                    <li
-                        data-column-row
-                        class="flex flex-wrap items-center gap-x-4 gap-y-2 py-2.5"
-                    >
-                        <div class="flex min-w-0 flex-1 items-baseline gap-3">
-                            <span
-                                class="text-muted-foreground w-20 shrink-0 text-sm"
-                            >
-                                {m.languages_column_label({ letter })}
-                            </span>
-                            {#if header.trim() !== ''}
-                                <span class="truncate text-sm font-medium">
-                                    {m.languages_column_header({
-                                        name: header
-                                    })}
-                                </span>
-                            {/if}
-                        </div>
-
-                        <div class="flex items-center gap-2">
-                            <Select.Root
-                                type="single"
-                                value={languages[index]}
-                                onValueChange={(value) =>
-                                    setLanguage(index, value)}
-                            >
-                                <Select.Trigger
-                                    size="sm"
-                                    class="w-44"
-                                    aria-label={m.languages_select_label({
-                                        letter
-                                    })}
-                                >
-                                    {languageLabel[languages[index]]()}
-                                </Select.Trigger>
-                                <Select.Content>
-                                    {#each options as option (option)}
-                                        <Select.Item
-                                            value={option}
-                                            label={languageLabel[option]()}
-                                        />
-                                    {/each}
-                                </Select.Content>
-                            </Select.Root>
-
-                            <!-- Fixed width keeps dropdowns aligned whether or not a row is marked. -->
-                            <div class="w-16">
-                                {#if uncertain}
-                                    <Badge
-                                        data-low-confidence
-                                        variant="outline"
-                                        class="border-amber-500/50 text-amber-700 dark:text-amber-400"
-                                    >
-                                        <TriangleAlertIcon aria-hidden="true" />
-                                        {m.languages_low_confidence_badge()}
-                                    </Badge>
-                                {/if}
-                            </div>
-                        </div>
-                    </li>
-                {/each}
-            </ul>
-
-            {#if !guess.confident}
-                <p
-                    class="text-muted-foreground mt-3 flex items-center gap-1.5 text-xs"
-                >
-                    <TriangleAlertIcon
-                        aria-hidden="true"
-                        class="size-3.5 text-amber-600 dark:text-amber-400"
+            <Card.Content class="flex flex-col gap-4">
+                <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
+                    <span class="shrink-0 text-sm font-medium">
+                        {m.languages_sheet_label()}
+                    </span>
+                    <LanguageSelect
+                        bind:value={sheetLanguage}
+                        {options}
+                        detected={guess.detected}
+                        class="min-w-48 flex-1"
+                        label={m.languages_sheet_label()}
+                        placeholder={m.languages_sheet_placeholder()}
+                        onchange={setSheetLanguage}
                     />
-                    {m.languages_low_confidence_legend()}
-                </p>
-            {/if}
-        </Card.Content>
+                </div>
 
-        <Card.Footer class="justify-end gap-2">
-            <Button variant="outline" onclick={oncancel}>
-                {m.languages_cancel_action()}
-            </Button>
-            <Button onclick={() => onconfirm([...languages])}>
-                {m.languages_continue_action()}
-            </Button>
-        </Card.Footer>
-    </Card.Root>
+                {#if guess.prefill === null}
+                    <p
+                        data-low-confidence
+                        class="flex items-center gap-1.5 text-sm text-amber-800 dark:text-amber-300"
+                    >
+                        <TriangleAlertIcon aria-hidden="true" class="size-4" />
+                        {m.languages_low_confidence_notice()}
+                    </p>
+                {:else if guess.prefill === 'unsupported' && guess.detected}
+                    <p
+                        data-unsupported
+                        class="flex items-center gap-1.5 text-sm text-amber-800 dark:text-amber-300"
+                    >
+                        <TriangleAlertIcon aria-hidden="true" class="size-4" />
+                        {m.languages_unsupported_notice({
+                            language: languageName(guess.detected)
+                        })}
+                    </p>
+                {/if}
+
+                <!-- Expanded, the columns sit between the sheet-wide picker
+                     and the actions, with the collapse control at their top. -->
+                <Collapsible.Content class="flex flex-col gap-2">
+                    <Collapsible.Trigger>
+                        {#snippet child({ props })}
+                            <Button
+                                {...props}
+                                variant="ghost"
+                                class="-ml-2 w-fit"
+                            >
+                                <ChevronDownIcon />
+                                {m.languages_overrides_hide()}
+                            </Button>
+                        {/snippet}
+                    </Collapsible.Trigger>
+                    <ColumnLanguageOverrides
+                        {headers}
+                        bind:languages
+                        {options}
+                        detected={guess.detected}
+                    />
+                </Collapsible.Content>
+            </Card.Content>
+
+            <Card.Footer class="flex-wrap gap-2">
+                {#if !overridesOpen}
+                    <Collapsible.Trigger>
+                        {#snippet child({ props })}
+                            <Button {...props} variant="ghost" class="-ml-2">
+                                <ChevronRightIcon />
+                                {headers.length === 1
+                                    ? m.languages_overrides_toggle_one()
+                                    : m.languages_overrides_toggle({
+                                          count: headers.length
+                                      })}
+                            </Button>
+                        {/snippet}
+                    </Collapsible.Trigger>
+                {/if}
+                <div class="ml-auto flex gap-2">
+                    <Button variant="outline" onclick={oncancel}>
+                        {m.languages_cancel_action()}
+                    </Button>
+                    <Button disabled={!complete} onclick={confirm}>
+                        {m.languages_continue_action()}
+                    </Button>
+                </div>
+            </Card.Footer>
+        </Card.Root>
+    </Collapsible.Root>
 </div>

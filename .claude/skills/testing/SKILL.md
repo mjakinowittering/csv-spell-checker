@@ -37,8 +37,9 @@ relative path. Shared fixtures go in `src/tests/support/`.
    offsets: apostrophes and elisions (`don't`, `l'homme`), hyphenated words,
    accented letters, numbers, URLs, e-mail addresses. Offsets drive the underline.
 3. **Language sampling** — exactly the first 10 non-header rows, all columns
-   combined; the Franc code → supported language mapping; when a guess counts as
-   low confidence; fallback when text is too short.
+   combined; the detected code → supported language mapping; when a guess counts
+   as low confidence (nothing pre-filled) or unsupported; falling back from the
+   built-in detector to Franc. Inject a fake detector through `DetectOptions`.
 4. **Workbook and edit history** — undo/redo order, redo cleared by a new edit,
    edited-cell tint surviving undo, closing tabs picks the right neighbour, sheet
    naming.

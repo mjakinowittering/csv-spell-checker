@@ -1,6 +1,6 @@
 ---
 name: spellcheck-worker
-description: Background spellcheck — the Web Worker, Typo.js with Hunspell dictionaries, how dictionaries are copied and served, word tokenising, the worker message protocol, flag state on the sheet (including stale-result handling), flagged-cell rendering, and Franc language detection. Load when working on the worker, dictionaries, tokenising rules, spelling flags or the issue count, or language detection.
+description: Background spellcheck — the Web Worker, Typo.js with Hunspell dictionaries, how dictionaries are copied and served, word tokenising, the worker message protocol, flag state on the sheet (including stale-result handling), flagged-cell rendering, and sheet language detection (Chrome's built-in detector with a Franc fallback, on the main thread). Load when working on the worker, dictionaries, tokenising rules, spelling flags or the issue count, or language detection.
 ---
 
 # Spellcheck worker
@@ -12,17 +12,19 @@ Worker, never on the main thread**; **after an edit only that cell is re-checked
 
 ## Files
 
-| file                                           | role                                                     |
-| ---------------------------------------------- | -------------------------------------------------------- |
-| `src/lib/spellcheck/tokenize.ts`               | which words are checked; `findMisspellings`              |
-| `src/lib/spellcheck/segments.ts`               | split a cell's text into plain / misspelled runs         |
-| `src/lib/spellcheck/protocol.ts`               | worker request / response types                          |
-| `src/lib/spellcheck/spellcheck.worker.ts`      | loads dictionaries, checks sheets and cells              |
-| `src/lib/spellcheck/spellchecker.ts`           | main-thread client; routes results to sheets             |
-| `src/lib/workbook/sheet.svelte.ts`             | flags, `checkState`, `issueCount`, `flaggedCells()`      |
-| `src/lib/components/grid/SheetCellText.svelte` | ring + wavy underline rendering                          |
-| `src/lib/languages/detect.ts`                  | Franc sampling and confidence (runs in the parse worker) |
-| `scripts/copy-dictionaries.js`                 | copies dictionaries into `static/dictionaries/`          |
+| file                                           | role                                                |
+| ---------------------------------------------- | --------------------------------------------------- |
+| `src/lib/spellcheck/tokenize.ts`               | which words are checked; `findMisspellings`         |
+| `src/lib/spellcheck/segments.ts`               | split a cell's text into plain / misspelled runs    |
+| `src/lib/spellcheck/protocol.ts`               | worker request / response types                     |
+| `src/lib/spellcheck/spellcheck.worker.ts`      | loads dictionaries, checks sheets and cells         |
+| `src/lib/spellcheck/spellchecker.ts`           | main-thread client; routes results to sheets        |
+| `src/lib/workbook/sheet.svelte.ts`             | flags, `checkState`, `issueCount`, `flaggedCells()` |
+| `src/lib/components/grid/SheetCellText.svelte` | ring + wavy underline rendering                     |
+| `src/lib/languages/detect.ts`                  | sampling, thresholds, `LanguageGuess` (main thread) |
+| `src/lib/languages/chrome-detector.ts`         | typed wrapper for Chrome's `LanguageDetector`       |
+| `src/lib/languages/franc-detector.ts`          | Franc fallback, loaded on demand                    |
+| `scripts/copy-dictionaries.js`                 | copies dictionaries into `static/dictionaries/`     |
 
 ## Dictionaries
 
@@ -47,6 +49,39 @@ lazily (it is prerendered, so `location` is unavailable at module load).
 Italian produces more than the V8 limit (~16.7M entries) and throws. Typo.js is
 also slow on French (~3.4s, ~320MB). `hunspell-wasm` loads all of them in under
 100ms and is a README todo item.
+
+## Language detection
+
+Runs once per new sheet in `importer.ts`, after the parse worker returns and
+while the loading screen is still up. Never in either worker.
+
+1. `sampleText()` joins the first 10 non-header rows, all columns.
+2. When `'LanguageDetector' in self`, `availability()` → `create()` →
+   `detect(text)`, each with a 5s timeout. Its top score is the confidence;
+   0.7 or more pre-fills. `unavailable`, or `create()` rejecting with
+   `NotSupportedError`/`NotAllowedError`, falls back to Franc quietly; any other
+   failure is logged with `console.error` and falls back too.
+3. Franc (`francAll`, limited to ~35 European candidates so unsupported
+   languages are recognised as themselves) always scores its best match 1, so
+   confidence is the gap to the runner-up: 100+ letters and a gap of 0.04+
+   pre-fills.
+
+The result is a `LanguageGuess { detected, prefill, confidence, confident,
+source }`. `prefill` is a supported code, `'unsupported'` (detected confidently
+but not checkable: the column is skipped, like `none`) or `null` (below the
+threshold: the confirmation screen pre-selects nothing and Continue stays
+disabled until every column has a language). English maps to en-US only for an
+`en-US` browser locale, otherwise en-GB. Tests inject `builtIn: null` or a fake
+factory through `DetectOptions`.
+
+The confirmation screen (`components/languages/`) is `LanguageConfirmation`:
+the sheet-wide `LanguageSelect` fills its row, notices sit under it, and the
+footer holds the "Override individual columns (N columns)" trigger on the left
+with Cancel/Continue on the right. Expanding (`overridesOpen`, bindable) hides
+that trigger and shows `ColumnLanguageOverrides` (per-column `LanguageSelect`s,
+`languages` bindable) between the picker and the footer, with a "Hide
+individual columns" collapse trigger at its top. Confirming stores
+`sheet.languages` and `sheet.sheetLanguage` (null when columns differ).
 
 ## Protocol
 

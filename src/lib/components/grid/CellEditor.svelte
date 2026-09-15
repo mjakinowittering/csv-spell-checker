@@ -4,7 +4,7 @@
     import { Textarea } from '$lib/components/ui/textarea';
 
     import { cellReference } from '$lib/grid/coordinates';
-    import type { ColumnLanguage } from '$lib/languages/codes';
+    import { isLanguageCode, type ColumnLanguage } from '$lib/languages/codes';
     import { m } from '$lib/paraglide/messages';
 
     let {
@@ -66,7 +66,7 @@
              in the column's language. -->
         <Textarea
             bind:value={draft}
-            lang={language === 'none' ? undefined : language}
+            lang={isLanguageCode(language) ? language : undefined}
             spellcheck={true}
             rows={6}
             aria-label={m.editor_value_label()}

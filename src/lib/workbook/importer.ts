@@ -2,6 +2,7 @@ import { toast } from 'svelte-sonner';
 
 import { parseInWorker } from '$lib/csv/parser';
 import type { ParseSource } from '$lib/csv/protocol';
+import { detectSheetLanguage, type LanguageGuess } from '$lib/languages/detect';
 import { m } from '$lib/paraglide/messages';
 
 import { Sheet } from './sheet.svelte';
@@ -11,6 +12,22 @@ import type { Workbook } from './workbook.svelte';
 export type OnParsed = (sheet: Sheet) => void;
 
 const pasteTime = new Intl.DateTimeFormat(undefined, { timeStyle: 'medium' });
+
+/** Detect a sheet's language; if detection itself fails, ask with no guess. */
+async function detectLanguage(rows: string[][]): Promise<LanguageGuess> {
+    try {
+        return await detectSheetLanguage(rows);
+    } catch (error) {
+        console.error('Language detection failed', error);
+        return {
+            detected: null,
+            prefill: null,
+            confidence: 0,
+            confident: false,
+            source: 'franc'
+        };
+    }
+}
 
 export function isCsvFile(file: File): boolean {
     return /\.csv$/i.test(file.name) || file.type === 'text/csv';
@@ -62,7 +79,7 @@ async function load(
     workbook.open(sheet);
 
     try {
-        const { rows, guess } = await parseInWorker(source, (progress) => {
+        const rows = await parseInWorker(source, (progress) => {
             sheet.phase = { kind: 'parsing', progress };
         });
 
@@ -73,6 +90,9 @@ async function load(
         }
 
         sheet.rows = rows;
+        // Still on the loading screen: sample the sheet for its language.
+        sheet.phase = { kind: 'parsing', progress: 1 };
+        const guess = await detectLanguage(rows);
         // Always ask: no sheet skips language confirmation.
         sheet.phase = { kind: 'confirming', guess };
         onparsed(sheet);

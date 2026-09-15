@@ -1,12 +1,7 @@
-import type {
-    ParseRequest,
-    ParseResponse,
-    ParseResult,
-    ParseSource
-} from './protocol';
+import type { ParseRequest, ParseResponse, ParseSource } from './protocol';
 
 type PendingParse = {
-    resolve: (result: ParseResult) => void;
+    resolve: (rows: string[][]) => void;
     reject: (error: Error) => void;
     onProgress: (fraction: number) => void;
 };
@@ -32,11 +27,8 @@ function getWorker(): Worker {
         }
 
         pending.delete(data.id);
-        if (data.type === 'done') {
-            request.resolve({ rows: data.rows, guess: data.guess });
-        } else {
-            request.reject(new Error(data.message));
-        }
+        if (data.type === 'done') request.resolve(data.rows);
+        else request.reject(new Error(data.message));
     };
 
     worker.onerror = (event) => {
@@ -52,14 +44,11 @@ function getWorker(): Worker {
     return worker;
 }
 
-/**
- * Parse a CSV file or pasted text off the main thread, returning the rows and
- * a sheet-wide language guess.
- */
+/** Parse a CSV file or pasted text off the main thread. */
 export function parseInWorker(
     source: ParseSource,
     onProgress: (fraction: number) => void
-): Promise<ParseResult> {
+): Promise<string[][]> {
     return new Promise((resolve, reject) => {
         const id = nextId++;
         pending.set(id, { resolve, reject, onProgress });

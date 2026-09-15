@@ -1,8 +1,8 @@
 import { m } from '$lib/paraglide/messages';
 
-import type { ColumnLanguage } from './codes';
+import type { ColumnLanguage, LanguageCode } from './codes';
 
-export const languageLabel: Record<ColumnLanguage, () => string> = {
+export const languageLabel: Record<LanguageCode | 'none', () => string> = {
     'en-GB': m.languages_en_gb,
     'en-US': m.languages_en_us,
     fr: m.languages_fr,
@@ -10,3 +10,28 @@ export const languageLabel: Record<ColumnLanguage, () => string> = {
     es: m.languages_es,
     none: m.languages_none
 };
+
+const displayNames = new Intl.DisplayNames(['en'], { type: 'language' });
+
+/** The English name of any BCP 47 language code, e.g. `pl` → "Polish". */
+export function languageName(code: string): string {
+    try {
+        return displayNames.of(code) ?? code;
+    } catch {
+        return code;
+    }
+}
+
+/**
+ * The label for a column language. `unsupported` names the detected language
+ * when it is known, so the user can see what will not be checked.
+ */
+export function columnLanguageLabel(
+    language: ColumnLanguage,
+    detected: string | null = null
+): string {
+    if (language !== 'unsupported') return languageLabel[language]();
+    return detected
+        ? m.languages_unsupported({ language: languageName(detected) })
+        : m.languages_unsupported_unknown();
+}

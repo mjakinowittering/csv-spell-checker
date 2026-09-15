@@ -25,6 +25,8 @@ export type SheetRecord = {
     name: string;
     sourceFileName: string | null;
     phase: { kind: 'confirming'; guess: LanguageGuess } | { kind: 'ready' };
+    /** The confirmed sheet-wide language; null when columns differ. */
+    sheetLanguage: ColumnLanguage | null;
     languages: ColumnLanguage[];
     ignoredWords: string[];
     /** Edited cell values, as `[cellKey, value]` pairs. */
@@ -36,6 +38,17 @@ export type SheetRecord = {
 /** Map key for a cell. Row 0 is the header row. */
 export function cellKey(row: number, column: number): string {
     return `${row}:${column}`;
+}
+
+/** The one language every column shares, or null when they differ. */
+function uniformLanguage(
+    languages: readonly ColumnLanguage[]
+): ColumnLanguage | null {
+    const [first] = languages;
+    return first !== undefined &&
+        languages.every((language) => language === first)
+        ? first
+        : null;
 }
 
 function parseCellKey(key: string): CellPosition {
@@ -58,6 +71,12 @@ export class Sheet {
      * in a per-cell override map so an edit re-renders one cell, not the grid.
      */
     rows = $state.raw<string[][]>([]);
+
+    /**
+     * The sheet-wide language picked on the confirmation screen, or null when
+     * the columns were set to different languages.
+     */
+    sheetLanguage = $state<ColumnLanguage | null>(null);
 
     /** One language per column, set only by confirming the language screen. */
     languages = $state.raw<ColumnLanguage[]>([]);
@@ -109,6 +128,7 @@ export class Sheet {
         const sheet = new Sheet(record.name, record.sourceFileName, record.id);
         sheet.rows = rows;
         sheet.languages = record.languages;
+        sheet.sheetLanguage = record.sheetLanguage ?? null;
         sheet.phase = record.phase;
         for (const word of record.ignoredWords) sheet.ignoredWords.add(word);
         for (const [key, value] of record.overrides) {
@@ -127,6 +147,7 @@ export class Sheet {
             sourceFileName: this.sourceFileName,
             // Snapshot: IndexedDB cannot clone Svelte's state proxies.
             phase: $state.snapshot(this.phase),
+            sheetLanguage: this.sheetLanguage,
             languages: [...this.languages],
             ignoredWords: [...this.ignoredWords],
             overrides: [...this.#overrides.entries()],
@@ -138,9 +159,13 @@ export class Sheet {
      * Record the user's per-column choices. Every new sheet must pass through
      * the confirmation screen; there is no other way to reach `ready`.
      */
-    confirmLanguages(languages: ColumnLanguage[]) {
+    confirmLanguages(
+        languages: ColumnLanguage[],
+        sheetLanguage: ColumnLanguage | null = uniformLanguage(languages)
+    ) {
         if (this.phase.kind !== 'confirming') return;
         this.languages = languages;
+        this.sheetLanguage = sheetLanguage;
         this.phase = { kind: 'ready' };
     }
 

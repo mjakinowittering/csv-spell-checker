@@ -13,7 +13,7 @@ export type CellFlags = {
 export type SpellcheckRequest =
     /** Where dictionaries are served from: `<base>/<language>/index.aff`. */
     | { type: 'init'; dictionaryBase: string }
-    /** Check every cell in columns that are not `none`. */
+    /** Check every cell in columns set to a supported language. */
     | {
           type: 'check-sheet';
           sheetId: string;

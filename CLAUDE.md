@@ -13,7 +13,7 @@ A browser-based PWA for uploading or pasting CSV/spreadsheet data and spell-chec
 - Tailwind v4
 - SVAR Svelte Data Grid, with custom Svelte cell editor components
 - Typo.js (Hunspell dictionaries) for background spellcheck, run inside a Web Worker
-- Franc for language detection (sampled per sheet, confirmed by user)
+- Chrome's built-in Language Detector API for language detection, with Franc as the fallback (sampled per sheet, confirmed by user)
 - mode-watcher style theming, defaults to OS-level prefers-color-scheme
 
 ## Skills Index
@@ -41,9 +41,11 @@ Load the relevant skill file when working in that domain. Skills defer to this f
 - After an edit, only the edited cell is re-checked, not the whole sheet.
 - Edited cells keep a permanent visual tint, independent of error state.
 - Flagged cells show a squiggly underline plus a ring highlight, and this persists after blur.
-- Language detection runs once per new sheet (upload or paste) via Franc, sampling only the first 10 non-header rows across all columns combined, producing a single sheet-wide guess that pre-fills every column's dropdown.
-- The user must confirm languages per column before spellcheck starts, every time, no shortcuts.
+- Language detection runs once per new sheet (upload or paste) on the main thread during the loading step, never in the spellcheck worker. It uses Chrome's `LanguageDetector` when `'LanguageDetector' in self` and its model is available, and Franc otherwise. It samples only the first 10 non-header rows across all columns combined and produces a single sheet-wide guess.
+- Below the confidence threshold (built-in score under 0.7; for Franc, under 100 letters or a top-two score gap under 0.04) nothing is pre-filled and the user must choose.
+- The user must confirm the sheet's language (with optional per-column overrides) before spellcheck starts, every time, no shortcuts.
 - Supported languages: English UK, English US, French, German, Spanish. No others. (Italian is descoped: Typo.js cannot load an Italian Hunspell dictionary.)
+- A confidently detected language outside the supported list is pre-filled as "Unsupported, not spell-checked", styled differently from None. The worker skips those columns.
 - No `any` in TypeScript.
 - No `console.log`; `console.error` only.
 - All UI copy through shadcn-svelte components; no ad hoc HTML form elements.

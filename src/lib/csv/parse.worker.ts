@@ -1,5 +1,3 @@
-import { detectLanguage, englishVariantFor } from '$lib/languages/detect';
-
 import { detectDelimiter, parseDelimited } from './parse';
 import type { ParseRequest, ParseResponse } from './protocol';
 
@@ -19,13 +17,7 @@ self.onmessage = async ({
             delimiter,
             onProgress: (fraction) => post({ id, type: 'progress', fraction })
         });
-        // One sheet-wide guess from a small sample; running it here keeps
-        // Franc's language data out of the main bundle.
-        const guess = detectLanguage(
-            rows,
-            englishVariantFor(navigator.languages)
-        );
-        post({ id, type: 'done', rows, guess });
+        post({ id, type: 'done', rows });
     } catch (error) {
         post({
             id,

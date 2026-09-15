@@ -134,8 +134,12 @@
         importPastedText(workbook, text, onparsed);
     }
 
-    function confirmLanguages(sheet: Sheet, languages: Sheet['languages']) {
-        sheet.confirmLanguages(languages);
+    function confirmLanguages(
+        sheet: Sheet,
+        languages: Sheet['languages'],
+        sheetLanguage: Sheet['sheetLanguage']
+    ) {
+        sheet.confirmLanguages(languages, sheetLanguage);
         persistence.sheetChanged(sheet);
         spellchecker.checkSheet(sheet);
     }
@@ -311,8 +315,8 @@
                 <LanguageConfirmation
                     headers={sheet.rows[0]}
                     guess={active.phase.guess}
-                    onconfirm={(languages) =>
-                        confirmLanguages(sheet, languages)}
+                    onconfirm={(languages, sheetLanguage) =>
+                        confirmLanguages(sheet, languages, sheetLanguage)}
                     oncancel={() => closeSheet(sheet.id)}
                 />
             {/key}
