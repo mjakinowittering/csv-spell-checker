@@ -19,6 +19,8 @@ export type SpellcheckRequest =
           sheetId: string;
           rows: string[][];
           languages: ColumnLanguage[];
+          /** The sheet's ignore list, as `ignoreKey()` keys. */
+          ignoredWords: string[];
       }
     /** Re-check one cell after an edit, undo or redo. */
     | {
@@ -28,6 +30,7 @@ export type SpellcheckRequest =
           column: number;
           text: string;
           language: ColumnLanguage;
+          ignoredWords: string[];
       };
 
 export type SpellcheckResponse =

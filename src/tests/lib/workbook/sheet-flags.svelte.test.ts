@@ -119,3 +119,79 @@ describe('Sheet spelling flags', () => {
         expect(sheet.flagRanges(1, 1)).toEqual([{ start: 6, end: 13 }]);
     });
 });
+
+describe('Sheet ignored words', () => {
+    const twice = {
+        row: 2,
+        column: 1,
+        text: 'Hikking and hikking',
+        ranges: [
+            { start: 0, end: 7 },
+            { start: 12, end: 19 }
+        ]
+    };
+
+    it('lists a cell’s distinct flagged words in order', () => {
+        const sheet = readySheet();
+        // Flags only apply to the text a cell actually holds.
+        sheet.editCell(2, 1, twice.text);
+        sheet.beginCheck();
+        sheet.applySheetFlags([twice]);
+        // Flag text is kept, so the words read back as they were checked.
+        expect(sheet.cellIssueWords(2, 1)).toEqual(['Hikking']);
+        expect(sheet.cellIssueWords(1, 1)).toEqual([]);
+    });
+
+    it('counts flagged words across the sheet, most frequent first', () => {
+        const sheet = readySheet();
+        sheet.editCell(2, 1, twice.text);
+        sheet.editCell(2, 0, 'Recieves mail');
+        sheet.beginCheck();
+        sheet.applySheetFlags([hikking, twice, { ...recieves, column: 0 }]);
+        expect(sheet.flaggedWords()).toEqual([
+            { key: 'hikking', word: 'hikking', count: 3 },
+            { key: 'recieves', word: 'Recieves', count: 1 }
+        ]);
+    });
+
+    it('clears an ignored word everywhere at once, whatever its case', () => {
+        const sheet = readySheet();
+        sheet.beginCheck();
+        sheet.applySheetFlags([hikking, recieves]);
+
+        expect(sheet.ignoreWord('HIKKING')).toBe(true);
+
+        expect([...sheet.ignoredWords]).toEqual(['hikking']);
+        expect(sheet.flagRanges(1, 1)).toBeUndefined();
+        expect(sheet.issueCount).toBe(1);
+        expect(sheet.ignoreWord('hikking')).toBe(false);
+    });
+
+    it('keeps a cell’s other flagged words when one is ignored', () => {
+        const sheet = readySheet();
+        sheet.editCell(1, 1, 'Recieves hikking');
+        sheet.beginCheck();
+        sheet.applySheetFlags([
+            {
+                row: 1,
+                column: 1,
+                text: 'Recieves hikking',
+                ranges: [
+                    { start: 0, end: 8 },
+                    { start: 9, end: 16 }
+                ]
+            }
+        ]);
+        sheet.ignoreWord('hikking');
+        expect(sheet.cellIssueWords(1, 1)).toEqual(['Recieves']);
+    });
+
+    it('persists the ignore list in the sheet record', () => {
+        const sheet = readySheet();
+        sheet.ignoreWord('Hikking');
+        const record = sheet.toRecord();
+        expect(record?.ignoredWords).toEqual(['hikking']);
+        const restored = Sheet.fromRecord(record!, sheet.rows);
+        expect(restored.ignoredWords.has('hikking')).toBe(true);
+    });
+});

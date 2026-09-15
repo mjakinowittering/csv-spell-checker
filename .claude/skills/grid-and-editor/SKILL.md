@@ -53,6 +53,10 @@ scroll). `snapshot()` merges overrides for export.
   commits.
 - The textarea sets `lang` to the column's language (omitted for None) and
   `spellcheck`, so native spellcheck and extensions work while typing.
+- Below the textarea, `CellIssueChips` lists the cell's flagged words
+  (`sheet.cellIssueWords`) under "Issues in this cell:". Dismissing a chip
+  ignores that word across the sheet (see the spellcheck-worker skill); the
+  draft is untouched and the dialog stays open.
 - `editCell` returns `null` for an unchanged value: no tint, no history entry.
 - Undo/redo: toolbar buttons and Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z, Ctrl/Cmd+Y — ignored
   while focus is in an editable element or the dialog is open. Undo restores the

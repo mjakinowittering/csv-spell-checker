@@ -159,7 +159,10 @@ describe('built-in detector', () => {
         const noModel: BuiltInDetectorFactory = {
             availability: async () => 'downloadable',
             create: async () => {
-                throw new DOMException('Model not available', 'NotSupportedError');
+                throw new DOMException(
+                    'Model not available',
+                    'NotSupportedError'
+                );
             }
         };
         const guess = await detectSheetLanguage(sheet([[long.de, '']]), {

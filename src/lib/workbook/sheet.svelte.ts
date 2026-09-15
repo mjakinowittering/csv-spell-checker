@@ -3,7 +3,7 @@ import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 import type { ColumnLanguage } from '$lib/languages/codes';
 import type { LanguageGuess } from '$lib/languages/detect';
 import type { CellFlags } from '$lib/spellcheck/protocol';
-import type { MisspellingRange } from '$lib/spellcheck/tokenize';
+import { ignoreKey, type MisspellingRange } from '$lib/spellcheck/tokenize';
 
 import { EditHistory, type CellEdit } from './history.svelte';
 
@@ -15,6 +15,9 @@ export type SheetPhase =
 export type CheckState = 'idle' | 'checking' | 'done';
 
 export type CellPosition = { row: number; column: number };
+
+/** A flagged word across the sheet: its ignore key, as written, and how often. */
+export type FlaggedWord = { key: string; word: string; count: number };
 
 /**
  * What is stored for a sheet in IndexedDB (its parsed rows are stored
@@ -96,7 +99,12 @@ export class Sheet {
     checkProgress = $state(0);
 
     #overrides = new SvelteMap<string, string>();
-    #flags = new SvelteMap<string, MisspellingRange[]>();
+    // Each flagged cell's ranges with the text they were found in, so the
+    // flagged words can be read back even while an edit is being re-checked.
+    #flags = new SvelteMap<
+        string,
+        { text: string; ranges: readonly MisspellingRange[] }
+    >();
 
     /** Number of flagged cells. */
     issueCount = $derived(this.#flags.size);
@@ -221,7 +229,62 @@ export class Sheet {
         row: number,
         column: number
     ): readonly MisspellingRange[] | undefined {
-        return this.#flags.get(cellKey(row, column));
+        return this.#flags.get(cellKey(row, column))?.ranges;
+    }
+
+    /** The distinct misspelled words in one cell, in the order they appear. */
+    cellIssueWords(row: number, column: number): string[] {
+        const flag = this.#flags.get(cellKey(row, column));
+        if (!flag) return [];
+        // Local scratch, never rendered: no reactivity needed.
+        // eslint-disable-next-line svelte/prefer-svelte-reactivity
+        const words = new Map<string, string>();
+        for (const { start, end } of flag.ranges) {
+            const word = flag.text.slice(start, end);
+            const key = ignoreKey(word);
+            if (!words.has(key)) words.set(key, word);
+        }
+        return [...words.values()];
+    }
+
+    /** Every flagged word in the sheet, most frequent first. */
+    flaggedWords(): FlaggedWord[] {
+        // Local scratch, never rendered: no reactivity needed.
+        // eslint-disable-next-line svelte/prefer-svelte-reactivity
+        const words = new Map<string, FlaggedWord>();
+        for (const { text, ranges } of this.#flags.values()) {
+            for (const { start, end } of ranges) {
+                const word = text.slice(start, end);
+                const key = ignoreKey(word);
+                const entry = words.get(key);
+                if (entry) entry.count += 1;
+                else words.set(key, { key, word, count: 1 });
+            }
+        }
+        return [...words.values()].sort(
+            (a, b) => b.count - a.count || a.word.localeCompare(b.word)
+        );
+    }
+
+    /**
+     * Stop flagging a word anywhere in this sheet. Its flags are cleared at
+     * once; the caller then re-checks the sheet in the worker so the result
+     * is authoritative. Returns false when the word was already ignored.
+     */
+    ignoreWord(word: string): boolean {
+        const key = ignoreKey(word);
+        if (key === '' || this.ignoredWords.has(key)) return false;
+        this.ignoredWords.add(key);
+        for (const [cell, flag] of [...this.#flags.entries()]) {
+            const ranges = flag.ranges.filter(
+                ({ start, end }) =>
+                    ignoreKey(flag.text.slice(start, end)) !== key
+            );
+            if (ranges.length === flag.ranges.length) continue;
+            if (ranges.length > 0) this.#flags.set(cell, { ...flag, ranges });
+            else this.#flags.delete(cell);
+        }
+        return true;
     }
 
     /** Flagged cells in reading order: row by row, left to right. */
@@ -251,7 +314,7 @@ export class Sheet {
             if (this.#changedDuringCheck.has(key)) continue;
             // Stale: the cell changed after the worker read it.
             if (this.cellValue(flag.row, flag.column) !== flag.text) continue;
-            this.#flags.set(key, flag.ranges);
+            this.#flags.set(key, { text: flag.text, ranges: flag.ranges });
         }
         this.#changedDuringCheck.clear();
         this.checkState = 'done';
@@ -262,8 +325,9 @@ export class Sheet {
     applyCellFlags(cell: CellFlags) {
         if (this.cellValue(cell.row, cell.column) !== cell.text) return;
         const key = cellKey(cell.row, cell.column);
-        if (cell.ranges.length > 0) this.#flags.set(key, cell.ranges);
-        else this.#flags.delete(key);
+        if (cell.ranges.length > 0) {
+            this.#flags.set(key, { text: cell.text, ranges: cell.ranges });
+        } else this.#flags.delete(key);
     }
 
     #write(row: number, column: number, value: string) {

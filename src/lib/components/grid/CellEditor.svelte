@@ -7,19 +7,27 @@
     import { isLanguageCode, type ColumnLanguage } from '$lib/languages/codes';
     import { m } from '$lib/paraglide/messages';
 
+    import CellIssueChips from './CellIssueChips.svelte';
+
     let {
         row,
         column,
         value,
         language,
+        issues = [],
         onconfirm,
+        onignoreword,
         onclosed
     }: {
         row: number;
         column: number;
         value: string;
         language: ColumnLanguage;
+        /** The cell's flagged words, as last checked. */
+        issues?: readonly string[];
         onconfirm: (value: string) => void;
+        /** Ignore a flagged word across the whole sheet. */
+        onignoreword?: (word: string) => void;
         onclosed: () => void;
     } = $props();
 
@@ -73,6 +81,10 @@
             class="max-h-[50vh] min-h-32"
             {onkeydown}
         />
+
+        {#if onignoreword}
+            <CellIssueChips words={issues} onignore={onignoreword} />
+        {/if}
 
         <Dialog.Footer>
             <Button variant="outline" onclick={() => (open = false)}>

@@ -33,7 +33,8 @@ export class Spellchecker {
             type: 'check-sheet',
             sheetId: sheet.id,
             rows: sheet.snapshot(),
-            languages: [...sheet.languages]
+            languages: [...sheet.languages],
+            ignoredWords: [...sheet.ignoredWords]
         });
     }
 
@@ -46,7 +47,8 @@ export class Spellchecker {
             row,
             column,
             text: sheet.cellValue(row, column),
-            language: sheet.languages[column] ?? 'none'
+            language: sheet.languages[column] ?? 'none',
+            ignoredWords: [...sheet.ignoredWords]
         });
     }
 

@@ -86,15 +86,33 @@ individual columns" collapse trigger at its top. Confirming stores
 ## Protocol
 
 - `init { dictionaryBase }` — once, when the worker starts.
-- `check-sheet { sheetId, rows, languages }` → `sheet-progress` … then one
-  `sheet-result { flags }` listing only cells with misspellings.
-- `check-cell { sheetId, row, column, text, language }` → `cell-result { cell }`
-  (empty `ranges` means the cell is now clean).
+- `check-sheet { sheetId, rows, languages, ignoredWords }` → `sheet-progress` …
+  then one `sheet-result { flags }` listing only cells with misspellings.
+- `check-cell { sheetId, row, column, text, language, ignoredWords }` →
+  `cell-result { cell }` (empty `ranges` means the cell is now clean).
 - `dictionary-error { language }` — the page shows a toast; those columns stay
   unchecked.
 
 Dictionaries load once per worker and are shared across sheets; checked words
 are memoised per language.
+
+## Ignored words
+
+Each sheet has an ignore list (`sheet.ignoredWords`, persisted in its record).
+Entries are `ignoreKey(word)`: lower-cased with curly apostrophes straightened,
+so every casing of a word is ignored together. `findMisspellings(text, check,
+ignored)` skips those tokens before the dictionary is consulted; hyphenated
+compounds are matched part by part, like checking.
+
+The sheet keeps each flagged cell's checked text alongside its ranges, so
+`cellIssueWords(row, column)` (the editor's chips) and `flaggedWords()` (the
+toolbar badge's "Flagged words across this sheet" dialog, deduplicated with
+counts) read the words back exactly as they were flagged.
+
+`sheet.ignoreWord(word)` adds the key and clears that word's ranges from every
+flag at once, so the UI updates immediately. The page then persists the sheet
+and runs a full `checkSheet` in the worker with the new list, which is
+authoritative. Every later `check-cell` sends the list too.
 
 ## Tokenising
 

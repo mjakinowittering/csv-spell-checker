@@ -9,6 +9,7 @@
     import UploadIcon from '@lucide/svelte/icons/upload';
 
     import { Badge } from '$lib/components/ui/badge';
+    import { Button } from '$lib/components/ui/button';
     import * as ButtonGroup from '$lib/components/ui/button-group';
     import { Separator } from '$lib/components/ui/separator';
     import { Spinner } from '$lib/components/ui/spinner';
@@ -29,6 +30,7 @@
         onredo,
         onpreviousissue,
         onnextissue,
+        onshowissues,
         ondownload,
         onupload
     }: {
@@ -44,6 +46,8 @@
         onredo?: () => void;
         onpreviousissue?: () => void;
         onnextissue?: () => void;
+        /** Open the sheet-wide list of flagged words. */
+        onshowissues?: () => void;
         ondownload?: () => void;
         onupload?: () => void;
     } = $props();
@@ -94,24 +98,43 @@
         />
 
         <div class="flex items-center gap-1">
-            <Badge
-                variant={!checking && issueCount > 0
-                    ? 'destructive'
-                    : 'secondary'}
-                aria-live="polite"
-            >
-                {#if checking}
-                    <Spinner stroke="currentColor" class="size-3" />
-                    {m.toolbar_checking()}
-                {:else}
-                    {#if issueCount > 0}
-                        <TriangleAlertIcon aria-hidden="true" />
+            {#snippet issuesBadge()}
+                <Badge
+                    variant={!checking && issueCount > 0
+                        ? 'destructive'
+                        : 'secondary'}
+                    aria-live="polite"
+                >
+                    {#if checking}
+                        <Spinner stroke="currentColor" class="size-3" />
+                        {m.toolbar_checking()}
+                    {:else}
+                        {#if issueCount > 0}
+                            <TriangleAlertIcon aria-hidden="true" />
+                        {/if}
+                        {issueCount === 1
+                            ? m.toolbar_issues_one()
+                            : m.toolbar_issues_count({ count: issueCount })}
                     {/if}
-                    {issueCount === 1
-                        ? m.toolbar_issues_one()
-                        : m.toolbar_issues_count({ count: issueCount })}
-                {/if}
-            </Badge>
+                </Badge>
+            {/snippet}
+
+            <!-- With issues to show, the badge opens the flagged words. -->
+            {#if onshowissues && !checking && issueCount > 0}
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    aria-haspopup="dialog"
+                    title={m.toolbar_issues_open_hint()}
+                    class="h-auto rounded-full p-0"
+                    onclick={onshowissues}
+                >
+                    {@render issuesBadge()}
+                    <span class="sr-only">{m.toolbar_issues_open_hint()}</span>
+                </Button>
+            {:else}
+                {@render issuesBadge()}
+            {/if}
             <ToolbarButton
                 icon={ChevronLeftIcon}
                 label={m.toolbar_issue_previous_hint()}

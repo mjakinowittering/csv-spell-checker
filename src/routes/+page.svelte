@@ -6,6 +6,7 @@
     import EmptyState from '$lib/components/empty/EmptyState.svelte';
     import CellEditor from '$lib/components/grid/CellEditor.svelte';
     import SheetGrid from '$lib/components/grid/SheetGrid.svelte';
+    import FlaggedWordsDialog from '$lib/components/issues/FlaggedWordsDialog.svelte';
     import LanguageConfirmation from '$lib/components/languages/LanguageConfirmation.svelte';
     import SheetLoading from '$lib/components/sheet/SheetLoading.svelte';
     import SheetTabs from '$lib/components/shell/SheetTabs.svelte';
@@ -62,6 +63,7 @@
     let fileInputValue = $state('');
     let dragDepth = $state(0);
     let editing = $state<EditTarget | null>(null);
+    let flaggedWordsOpen = $state(false);
     // Until stored sheets are back, the empty state would only flash.
     let restored = $state(false);
 
@@ -164,6 +166,13 @@
             // Only the edited cell is re-checked, never the whole sheet.
             spellchecker.checkCell(sheet, row, column);
         }
+    }
+
+    /** Ignore a word for a whole sheet, then re-check the sheet in the worker. */
+    function ignoreWord(sheet: Sheet, word: string) {
+        if (!sheet.ignoreWord(word)) return;
+        persistence.sheetChanged(sheet);
+        spellchecker.checkSheet(sheet);
     }
 
     function undo() {
@@ -292,6 +301,7 @@
         onredo={redo}
         onpreviousissue={() => goToIssue('previous')}
         onnextissue={() => goToIssue('next')}
+        onshowissues={() => (flaggedWordsOpen = true)}
         ondownload={() => {
             const sheet = readySheet();
             if (sheet) exportSheet(sheet);
@@ -350,6 +360,15 @@
     />
 </div>
 
+<FlaggedWordsDialog
+    bind:open={flaggedWordsOpen}
+    words={readySheet()?.flaggedWords() ?? []}
+    onignore={(word) => {
+        const sheet = readySheet();
+        if (sheet) ignoreWord(sheet, word);
+    }}
+/>
+
 {#if editing}
     {@const target = editing}
     {#key target}
@@ -358,7 +377,9 @@
             column={target.column}
             value={target.sheet.cellValue(target.row, target.column)}
             language={target.sheet.languages[target.column] ?? 'none'}
+            issues={target.sheet.cellIssueWords(target.row, target.column)}
             onconfirm={confirmEdit}
+            onignoreword={(word) => ignoreWord(target.sheet, word)}
             onclosed={() => {
                 // A newer edit may already have replaced this one.
                 if (editing === target) editing = null;

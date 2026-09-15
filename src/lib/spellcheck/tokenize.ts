@@ -50,13 +50,25 @@ export function tokenize(text: string): WordToken[] {
     return tokens;
 }
 
-/** Ranges of the words in `text` that `check` rejects. */
+/**
+ * How a word is stored in a sheet's ignore list: case-insensitive, with curly
+ * apostrophes straightened, so "Hikking" and "hikking" are ignored together.
+ */
+export function ignoreKey(word: string): string {
+    return word.replace(/’/g, "'").toLocaleLowerCase();
+}
+
+/** Ranges of the words in `text` that `check` rejects and are not ignored. */
 export function findMisspellings(
     text: string,
-    check: WordCheck
+    check: WordCheck,
+    ignored: ReadonlySet<string> = new Set()
 ): MisspellingRange[] {
     return tokenize(text)
-        .filter(({ word }) => !isCorrect(word, check))
+        .filter(
+            ({ word }) =>
+                !ignored.has(ignoreKey(word)) && !isCorrect(word, check)
+        )
         .map(({ start, end }) => ({ start, end }));
 }
 

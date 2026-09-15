@@ -80,6 +80,7 @@ async function checkSheet(
     request: Extract<SpellcheckRequest, { type: 'check-sheet' }>
 ) {
     const { sheetId, rows, languages } = request;
+    const ignored = new Set(request.ignoredWords);
     const checks = await checkersFor(sheetId, languages);
     const total = rows.reduce((sum, row) => sum + row.length, 0);
     const flags: CellFlags[] = [];
@@ -101,7 +102,7 @@ async function checkSheet(
                     ? checks.get(language)
                     : undefined;
             if (!check || text === '') return;
-            const ranges = findMisspellings(text, check);
+            const ranges = findMisspellings(text, check, ignored);
             if (ranges.length > 0) {
                 flags.push({ row: rowIndex, column, text, ranges });
             }
@@ -118,7 +119,13 @@ async function checkCell(
     let ranges: CellFlags['ranges'] = [];
     if (isLanguageCode(language) && text !== '') {
         const check = (await checkersFor(sheetId, [language])).get(language);
-        if (check) ranges = findMisspellings(text, check);
+        if (check) {
+            ranges = findMisspellings(
+                text,
+                check,
+                new Set(request.ignoredWords)
+            );
+        }
     }
     post({ type: 'cell-result', sheetId, cell: { row, column, text, ranges } });
 }

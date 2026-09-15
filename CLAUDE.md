@@ -41,6 +41,7 @@ Load the relevant skill file when working in that domain. Skills defer to this f
 - After an edit, only the edited cell is re-checked, not the whole sheet.
 - Edited cells keep a permanent visual tint, independent of error state.
 - Flagged cells show a squiggly underline plus a ring highlight, and this persists after blur.
+- Ignoring a flagged word (from the cell editor's chips or the toolbar's flagged-words dialog) applies to the whole sheet, case-insensitively. It is persisted with the sheet and followed by a full re-check in the worker.
 - Language detection runs once per new sheet (upload or paste) on the main thread during the loading step, never in the spellcheck worker. It uses Chrome's `LanguageDetector` when `'LanguageDetector' in self` and its model is available, and Franc otherwise. It samples only the first 10 non-header rows across all columns combined and produces a single sheet-wide guess.
 - Below the confidence threshold (built-in score under 0.7; for Franc, under 100 letters or a top-two score gap under 0.04) nothing is pre-filled and the user must choose.
 - The user must confirm the sheet's language (with optional per-column overrides) before spellcheck starts, every time, no shortcuts.
