@@ -152,6 +152,13 @@
         persistence.workbookChanged(workbook);
     }
 
+    function renameSheet(id: string, name: string) {
+        const sheet = workbook.sheets.find((candidate) => candidate.id === id);
+        if (!sheet) return;
+        sheet.name = name;
+        persistence.sheetChanged(sheet);
+    }
+
     function closeSheet(id: string) {
         workbook.close(id);
         spellchecker.release(id);
@@ -360,18 +367,23 @@
         activeId={workbook.activeId}
         onactivate={activateSheet}
         onclose={closeSheet}
+        onrename={renameSheet}
         onupload={openFilePicker}
         onpaste={pasteFromClipboard}
     />
 
-    <StatusBar
-        rowCount={active && active.phase.kind !== 'parsing'
-            ? active.rows.length
-            : null}
-        pending={active?.phase.kind === 'parsing'}
-        selection={selectedCellStatus()}
-        legend={readySheet() !== null}
-    />
+    <!-- Tabs and status bar stay anchored at the bottom; with no sheet open
+         there is nothing for the status bar to say. -->
+    {#if active}
+        <StatusBar
+            rowCount={active.phase.kind !== 'parsing'
+                ? active.rows.length
+                : null}
+            pending={active.phase.kind === 'parsing'}
+            selection={selectedCellStatus()}
+            legend={readySheet() !== null}
+        />
+    {/if}
 </div>
 
 <FlaggedWordsDialog

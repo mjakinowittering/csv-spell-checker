@@ -80,7 +80,7 @@ _No open bugs._
 
 #### Sheets
 
-- [ ] **Sheet renaming and layout** — rename a tab from its right-click menu, and hide the status bar when no sheet is open.
+- [x] **Sheet renaming and layout** — rename a tab from its right-click menu, and hide the status bar when no sheet is open.
 
 #### Export
 
