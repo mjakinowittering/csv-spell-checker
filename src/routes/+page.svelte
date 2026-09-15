@@ -3,6 +3,7 @@
     import { toast } from 'svelte-sonner';
 
     import EmptyState from '$lib/components/empty/EmptyState.svelte';
+    import CellEditor from '$lib/components/grid/CellEditor.svelte';
     import SheetGrid from '$lib/components/grid/SheetGrid.svelte';
     import LanguageConfirmation from '$lib/components/languages/LanguageConfirmation.svelte';
     import SheetLoading from '$lib/components/sheet/SheetLoading.svelte';
@@ -14,7 +15,10 @@
 
     import { m } from '$lib/paraglide/messages';
     import { importFiles, importPastedText } from '$lib/workbook/importer';
+    import type { Sheet } from '$lib/workbook/sheet.svelte';
     import { Workbook } from '$lib/workbook/workbook.svelte';
+
+    type EditTarget = { sheet: Sheet; row: number; column: number };
 
     const workbook = new Workbook();
 
@@ -23,8 +27,10 @@
     // binding; setting the DOM value directly is overwritten and throws.
     let fileInputValue = $state('');
     let dragDepth = $state(0);
+    let editing = $state<EditTarget | null>(null);
 
     const active = $derived(workbook.active);
+    const ready = $derived(active?.phase.kind === 'ready' ? active : null);
 
     function openFilePicker() {
         fileInput?.click();
@@ -48,12 +54,41 @@
         importPastedText(workbook, text);
     }
 
+    // The editor closes itself and reports back through `onclosed`.
+    function confirmEdit(value: string) {
+        if (!editing) return;
+        editing.sheet.editCell(editing.row, editing.column, value);
+    }
+
+    function undo() {
+        ready?.undo();
+    }
+
+    function redo() {
+        ready?.redo();
+    }
+
     function isEditable(target: EventTarget | null): boolean {
         return (
             target instanceof HTMLElement &&
             (target.isContentEditable ||
                 target.closest('input, textarea, [contenteditable]') !== null)
         );
+    }
+
+    function onkeydown(event: KeyboardEvent) {
+        // Text fields keep their own undo; the dialog owns the keyboard.
+        if (editing || !ready || isEditable(event.target)) return;
+        if (!(event.ctrlKey || event.metaKey)) return;
+        const key = event.key.toLowerCase();
+        if (key === 'z') {
+            event.preventDefault();
+            if (event.shiftKey) redo();
+            else undo();
+        } else if (key === 'y') {
+            event.preventDefault();
+            redo();
+        }
     }
 
     function onpaste(event: ClipboardEvent) {
@@ -94,7 +129,14 @@
     }
 </script>
 
-<svelte:window {onpaste} {ondragenter} {ondragleave} {ondragover} {ondrop} />
+<svelte:window
+    {onkeydown}
+    {onpaste}
+    {ondragenter}
+    {ondragleave}
+    {ondragover}
+    {ondrop}
+/>
 
 <Input
     bind:ref={fileInput}
@@ -111,9 +153,11 @@
 <div class="bg-background flex h-dvh flex-col">
     <Toolbar
         issueCount={0}
-        hasSheet={active?.phase.kind === 'ready'}
-        canUndo={false}
-        canRedo={false}
+        hasSheet={ready !== null}
+        canUndo={ready?.history.canUndo ?? false}
+        canRedo={ready?.history.canRedo ?? false}
+        onundo={undo}
+        onredo={redo}
         onupload={openFilePicker}
     />
 
@@ -145,8 +189,13 @@
                 />
             {/key}
         {:else}
-            {#key active.id}
-                <SheetGrid rows={active.rows} />
+            {@const sheet = active}
+            {#key sheet.id}
+                <SheetGrid
+                    {sheet}
+                    oneditcell={(row, column) =>
+                        (editing = { sheet, row, column })}
+                />
             {/key}
         {/if}
     </main>
@@ -164,8 +213,26 @@
         rowCount={active && active.phase.kind !== 'parsing'
             ? active.rows.length
             : null}
+        legend={ready !== null}
     />
 </div>
+
+{#if editing}
+    {@const target = editing}
+    {#key target}
+        <CellEditor
+            row={target.row}
+            column={target.column}
+            value={target.sheet.cellValue(target.row, target.column)}
+            language={target.sheet.languages[target.column] ?? 'none'}
+            onconfirm={confirmEdit}
+            onclosed={() => {
+                // A newer edit may already have replaced this one.
+                if (editing === target) editing = null;
+            }}
+        />
+    {/key}
+{/if}
 
 {#if dragDepth > 0}
     <div

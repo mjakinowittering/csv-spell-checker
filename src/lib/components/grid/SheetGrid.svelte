@@ -1,45 +1,179 @@
 <script lang="ts">
     import { mode } from 'mode-watcher';
+    import type { Attachment } from 'svelte/attachments';
     import {
         Grid,
         Willow,
         WillowDark,
+        type IApi,
+        type IColumn,
         type IColumnConfig,
         type IRow
     } from 'wx-svelte-grid';
 
-    let { rows }: { rows: readonly string[][] } = $props();
+    import { columnLetter } from '$lib/grid/coordinates';
+    import { m } from '$lib/paraglide/messages';
+    import type { Sheet } from '$lib/workbook/sheet.svelte';
 
-    // The CSV header row is the grid's own header: bold, and frozen because
-    // the grid never scrolls its header out of view.
-    const columns = $derived<IColumnConfig[]>(
-        (rows[0] ?? []).map((header, index) => ({
-            id: `c${index}`,
-            header,
-            width: 160,
-            resize: true
+    import DataCell from './DataCell.svelte';
+    import {
+        columnId,
+        columnIndexOf,
+        ROW_NUMBER_COLUMN,
+        setGridContext
+    } from './grid-context';
+    import HeaderValueCell from './HeaderValueCell.svelte';
+    import RowNumberCell from './RowNumberCell.svelte';
+
+    let {
+        sheet,
+        oneditcell
+    }: {
+        sheet: Sheet;
+        oneditcell: (row: number, column: number) => void;
+    } = $props();
+
+    setGridContext({
+        get sheet() {
+            return sheet;
+        }
+    });
+
+    let api: IApi | null = null;
+
+    const split = { left: 1 };
+    const sizes = { rowHeight: 32, headerHeight: 32, columnWidth: 160 };
+
+    // Header row 1: column letters. Header row 2: the CSV header, which is
+    // spreadsheet row 1 — bold, and frozen because the grid header never
+    // scrolls. The first column is the frozen row numbers.
+    const columns = $derived<IColumnConfig[]>([
+        {
+            id: ROW_NUMBER_COLUMN,
+            width: 52,
+            header: [
+                { text: '', css: 'sheet-corner' },
+                { text: '1', css: 'sheet-row-number' }
+            ],
+            cell: RowNumberCell
+        },
+        ...(sheet.rows[0] ?? []).map((_, index) => ({
+            id: columnId(index),
+            resize: true,
+            header: [
+                { text: columnLetter(index), css: 'sheet-letter' },
+                { cell: HeaderValueCell }
+            ],
+            cell: DataCell
+        }))
+    ]);
+
+    // Grid rows carry only an id — the sheet row index. Cell components read
+    // values from the sheet, so edits never reinitialise the grid.
+    const data = $derived<IRow[]>(
+        Array.from({ length: Math.max(sheet.rows.length - 1, 0) }, (_, i) => ({
+            id: i + 1
         }))
     );
 
-    const data = $derived<IRow[]>(
-        rows.slice(1).map((row, rowIndex) => {
-            const record: IRow = { id: rowIndex + 1 };
-            row.forEach((value, columnIndex) => {
-                record[`c${columnIndex}`] = value;
-            });
-            return record;
-        })
-    );
+    function columnStyle(column: IColumn): string {
+        return column.id === ROW_NUMBER_COLUMN ? 'sheet-row-number' : '';
+    }
+
+    function openFocusedCell() {
+        const focus = api?.getState().focusCell;
+        if (!focus) return;
+        const column = columnIndexOf(focus.column);
+        if (column !== null) oneditcell(Number(focus.row), column);
+    }
+
+    const hotkeys = { enter: openFocusedCell, f2: openFocusedCell };
+
+    // One listener for every cell (header row included). Cell components fill
+    // their cell and carry their sheet coordinates, so no control lives inside
+    // a cell and cells stay read-only at rest.
+    const delegateCellClicks: Attachment<HTMLElement> = (node) => {
+        function onclick(event: MouseEvent) {
+            if (!(event.target instanceof Element)) return;
+            const cell = event.target.closest<HTMLElement>('[data-sheet-row]');
+            if (!cell || !node.contains(cell)) return;
+            oneditcell(
+                Number(cell.dataset.sheetRow),
+                Number(cell.dataset.sheetColumn)
+            );
+        }
+        node.addEventListener('click', onclick);
+        return () => node.removeEventListener('click', onclick);
+    };
 </script>
 
-<div class="h-full">
+{#snippet grid()}
+    <Grid
+        {data}
+        {columns}
+        {columnStyle}
+        {split}
+        {sizes}
+        {hotkeys}
+        select={false}
+        init={(gridApi: IApi) => (api = gridApi)}
+    />
+{/snippet}
+
+<div
+    class="sheet-grid h-full"
+    role="region"
+    aria-label={m.grid_label()}
+    {@attach delegateCellClicks}
+>
     {#if mode.current === 'dark'}
-        <WillowDark fonts={false}>
-            <Grid {data} {columns} select={false} />
-        </WillowDark>
+        <WillowDark fonts={false}>{@render grid()}</WillowDark>
     {:else}
-        <Willow fonts={false}>
-            <Grid {data} {columns} select={false} />
-        </Willow>
+        <Willow fonts={false}>{@render grid()}</Willow>
     {/if}
 </div>
+
+<style>
+    /* Map the grid theme onto the app's tokens so it follows light/dark. */
+    .sheet-grid :global(.wx-willow-theme),
+    .sheet-grid :global(.wx-willow-dark-theme) {
+        --wx-font-family: inherit;
+        --wx-font-size: 13px;
+        --wx-background: var(--background);
+        --wx-background-alt: var(--muted);
+        --wx-background-hover: var(--accent);
+        --wx-color-font: var(--foreground);
+        --wx-color-font-alt: var(--muted-foreground);
+        --wx-color-primary: var(--ring);
+        --wx-border-color: var(--border);
+        --wx-border: 1px solid var(--border);
+        --wx-table-border: 1px solid var(--border);
+        --wx-table-header-background: var(--muted);
+        --wx-table-header-border: var(--wx-table-border);
+        --wx-table-header-cell-border: var(--wx-table-border);
+        --wx-table-cell-border: var(--wx-table-border);
+        --wx-table-fixed-column-border: 1px solid var(--border);
+        --wx-table-select-background: var(--accent);
+        --wx-header-font-weight: 400;
+    }
+
+    /* Cell components fill their cell: the whole cell is the click target. */
+    .sheet-grid :global(.wx-cell:has(> .sheet-cell)) {
+        padding: 0;
+    }
+
+    /* Column letters and row numbers are spreadsheet chrome. */
+    .sheet-grid :global(.wx-cell.sheet-letter),
+    .sheet-grid :global(.wx-cell.sheet-corner),
+    .sheet-grid :global(.wx-cell.sheet-row-number) {
+        justify-content: center;
+        background: var(--muted);
+        color: var(--muted-foreground);
+        font-size: 12px;
+    }
+
+    /* The CSV header row is data, so it sits on the page background. */
+    .sheet-grid :global(.wx-cell:has(> .sheet-cell[data-sheet-row='0'])) {
+        background: var(--background);
+    }
+</style>

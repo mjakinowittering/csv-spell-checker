@@ -45,6 +45,12 @@ export default defineConfig({
             emitTsDeclarations: true
         })
     ],
+    // Pre-bundling the grid in dev breaks reactivity in the custom cell
+    // components it mounts: cells never re-render after an edit (production
+    // builds are unaffected). Compiling it from source like app code fixes it.
+    optimizeDeps: {
+        exclude: ['wx-svelte-grid']
+    },
     // Parse and spellcheck workers are ES modules with their own imports.
     worker: {
         format: 'es'
