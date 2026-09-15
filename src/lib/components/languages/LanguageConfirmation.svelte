@@ -1,5 +1,4 @@
 <script lang="ts">
-    import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
     import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
     import TriangleAlertIcon from '@lucide/svelte/icons/triangle-alert';
 
@@ -74,13 +73,16 @@
 </script>
 
 <div class="flex h-full justify-center overflow-y-auto p-4 sm:p-8">
-    <Collapsible.Root bind:open={overridesOpen} class="h-fit w-full max-w-2xl">
-        <Card.Root>
-            <Card.Header>
-                <Card.Title>{m.languages_confirm_title()}</Card.Title>
-            </Card.Header>
+    <Card.Root class="h-fit w-full max-w-2xl">
+        <Card.Header>
+            <Card.Title>{m.languages_confirm_title()}</Card.Title>
+        </Card.Header>
 
-            <Card.Content class="flex flex-col gap-4">
+        <Card.Content>
+            <Collapsible.Root
+                bind:open={overridesOpen}
+                class="flex flex-col gap-4"
+            >
                 <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
                     <span class="shrink-0 text-sm font-medium">
                         {m.languages_sheet_label()}
@@ -116,21 +118,41 @@
                     </p>
                 {/if}
 
-                <!-- Expanded, the columns sit between the sheet-wide picker
-                     and the actions, with the collapse control at their top. -->
-                <Collapsible.Content class="flex flex-col gap-2">
+                <!-- The toggle and the actions share one row that never moves:
+                     expanding opens the columns below it, and the toggle
+                     relabels in place. -->
+                <div class="flex flex-wrap items-center gap-2">
                     <Collapsible.Trigger>
                         {#snippet child({ props })}
-                            <Button
-                                {...props}
-                                variant="ghost"
-                                class="-ml-2 w-fit"
-                            >
-                                <ChevronDownIcon />
-                                {m.languages_overrides_hide()}
+                            <Button {...props} variant="ghost" class="-ml-2">
+                                <ChevronRightIcon
+                                    class={overridesOpen
+                                        ? 'rotate-90 transition-transform'
+                                        : 'transition-transform'}
+                                />
+                                {#if overridesOpen}
+                                    {m.languages_overrides_hide()}
+                                {:else if headers.length === 1}
+                                    {m.languages_overrides_toggle_one()}
+                                {:else}
+                                    {m.languages_overrides_toggle({
+                                        count: headers.length
+                                    })}
+                                {/if}
                             </Button>
                         {/snippet}
                     </Collapsible.Trigger>
+                    <div class="ml-auto flex gap-2">
+                        <Button variant="outline" onclick={oncancel}>
+                            {m.languages_cancel_action()}
+                        </Button>
+                        <Button disabled={!complete} onclick={confirm}>
+                            {m.languages_continue_action()}
+                        </Button>
+                    </div>
+                </div>
+
+                <Collapsible.Content>
                     <ColumnLanguageOverrides
                         {headers}
                         bind:languages
@@ -138,32 +160,7 @@
                         detected={guess.detected}
                     />
                 </Collapsible.Content>
-            </Card.Content>
-
-            <Card.Footer class="flex-wrap gap-2">
-                {#if !overridesOpen}
-                    <Collapsible.Trigger>
-                        {#snippet child({ props })}
-                            <Button {...props} variant="ghost" class="-ml-2">
-                                <ChevronRightIcon />
-                                {headers.length === 1
-                                    ? m.languages_overrides_toggle_one()
-                                    : m.languages_overrides_toggle({
-                                          count: headers.length
-                                      })}
-                            </Button>
-                        {/snippet}
-                    </Collapsible.Trigger>
-                {/if}
-                <div class="ml-auto flex gap-2">
-                    <Button variant="outline" onclick={oncancel}>
-                        {m.languages_cancel_action()}
-                    </Button>
-                    <Button disabled={!complete} onclick={confirm}>
-                        {m.languages_continue_action()}
-                    </Button>
-                </div>
-            </Card.Footer>
-        </Card.Root>
-    </Collapsible.Root>
+            </Collapsible.Root>
+        </Card.Content>
+    </Card.Root>
 </div>
