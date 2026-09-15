@@ -7,7 +7,6 @@ export const languageLabel: Record<ColumnLanguage, () => string> = {
     'en-US': m.languages_en_us,
     fr: m.languages_fr,
     de: m.languages_de,
-    it: m.languages_it,
     es: m.languages_es,
     none: m.languages_none
 };

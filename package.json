@@ -45,7 +45,6 @@
         "dictionary-en-gb": "^3.0.0",
         "dictionary-es": "^4.0.0",
         "dictionary-fr": "^3.0.0",
-        "dictionary-it": "^2.0.0",
         "eslint": "^10.4.1",
         "eslint-config-prettier": "^10.1.8",
         "eslint-plugin-storybook": "^10.6.0",

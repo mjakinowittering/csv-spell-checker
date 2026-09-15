@@ -18,9 +18,12 @@ const FRANC_CODES = {
     eng: 'en',
     fra: 'fr',
     deu: 'de',
-    ita: 'it',
     spa: 'es'
 } as const;
+
+// Still offered to Franc so text in these languages is never confidently
+// pre-filled as its closest supported neighbour (Italian reads as Spanish).
+const UNSUPPORTED_CANDIDATES = ['ita'];
 
 type FrancCode = keyof typeof FRANC_CODES;
 type EnglishVariant = Extract<LanguageCode, 'en-GB' | 'en-US'>;
@@ -58,21 +61,28 @@ export function detectLanguage(
 ): LanguageGuess {
     const text = sampleText(rows);
     const letters = text.match(/\p{L}/gu)?.length ?? 0;
-    const [best, runnerUp] = francAll(text, {
-        only: Object.keys(FRANC_CODES),
+    const ranked = francAll(text, {
+        only: [...Object.keys(FRANC_CODES), ...UNSUPPORTED_CANDIDATES],
         minLength: 10
     });
+    const [top, runnerUp] = ranked;
+    const best = ranked.find((entry): entry is [FrancCode, number] =>
+        isFrancCode(entry[0])
+    );
 
-    if (!best || !isFrancCode(best[0])) {
+    if (!top || !best) {
         return { language: englishVariant, confident: false };
     }
 
     const base = FRANC_CODES[best[0]];
     const language = base === 'en' ? englishVariant : base;
-    const margin = runnerUp ? best[1] - runnerUp[1] : 1;
+    const margin = runnerUp ? top[1] - runnerUp[1] : 1;
 
     return {
         language,
-        confident: letters >= MIN_LETTERS && margin >= MIN_MARGIN
+        confident:
+            isFrancCode(top[0]) &&
+            letters >= MIN_LETTERS &&
+            margin >= MIN_MARGIN
     };
 }

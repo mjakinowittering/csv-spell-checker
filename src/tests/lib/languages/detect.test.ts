@@ -34,14 +34,19 @@ describe('detectLanguage', () => {
     it.each([
         ['fr', long.fr],
         ['de', long.de],
-        ['es', long.es],
-        ['it', long.it]
+        ['es', long.es]
     ] as const)('confidently detects %s', (language, text) => {
         const [first, second] = [text.slice(0, 70), text.slice(70)];
         expect(detectLanguage(sheet([[first, second]]), 'en-GB')).toEqual({
             language,
             confident: true
         });
+    });
+
+    it('never confidently guesses a supported language for Italian text', () => {
+        const guess = detectLanguage(sheet([[long.it, '']]), 'en-GB');
+        expect(guess.confident).toBe(false);
+        expect(['en-GB', 'fr', 'de', 'es']).toContain(guess.language);
     });
 
     it('maps English to the preferred variant', () => {

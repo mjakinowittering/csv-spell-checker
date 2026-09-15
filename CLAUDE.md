@@ -42,7 +42,7 @@ Load the relevant skill file when working in that domain. Skills defer to this f
 - Flagged cells show a squiggly underline plus a ring highlight, and this persists after blur.
 - Language detection runs once per new sheet (upload or paste) via Franc, sampling only the first 10 non-header rows across all columns combined, producing a single sheet-wide guess that pre-fills every column's dropdown.
 - The user must confirm languages per column before spellcheck starts, every time, no shortcuts.
-- Supported languages: English UK, English US, French, German, Italian, Spanish. No others.
+- Supported languages: English UK, English US, French, German, Spanish. No others. (Italian is descoped: Typo.js cannot load an Italian Hunspell dictionary.)
 - No `any` in TypeScript.
 - No `console.log`; `console.error` only.
 - All UI copy through shadcn-svelte components; no ad hoc HTML form elements.

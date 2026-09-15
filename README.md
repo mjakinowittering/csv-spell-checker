@@ -4,8 +4,7 @@ A browser-based PWA for uploading or pasting CSV data and spell-checking it.
 Native browser spellcheck works while you edit a cell. A background Hunspell
 check flags misspellings across the whole sheet at rest. CSV only.
 
-Supported languages: English (UK), English (US), French, German, Italian,
-Spanish.
+Supported languages: English (UK), English (US), French, German, Spanish.
 
 ## Developing
 

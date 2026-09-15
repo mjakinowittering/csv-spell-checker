@@ -1,14 +1,10 @@
 // Kept free of UI imports: the spellcheck worker imports this module.
 
-/** The only languages the app supports, in display order. */
-export const LANGUAGE_CODES = [
-    'en-GB',
-    'en-US',
-    'fr',
-    'de',
-    'it',
-    'es'
-] as const;
+/**
+ * The only languages the app supports, in display order. Italian is descoped:
+ * Typo.js cannot load an Italian Hunspell dictionary.
+ */
+export const LANGUAGE_CODES = ['en-GB', 'en-US', 'fr', 'de', 'es'] as const;
 
 export type LanguageCode = (typeof LANGUAGE_CODES)[number];
 
