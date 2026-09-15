@@ -132,13 +132,16 @@
 
 /* Spreadsheet cell states, shared by the grid and the status bar legend. */
 @layer components {
-    /* Edited: a permanent tint, independent of spelling flags. */
+    /* Edited and clean: a green tint and border. A flagged cell never gets
+       this class, so its red ring always wins (see SheetCellText). */
     .sheet-cell-edited {
         background-color: color-mix(
             in oklch,
-            oklch(0.685 0.169 237.323) 18%,
+            oklch(0.723 0.219 149.579) 16%,
             transparent
         );
+        box-shadow: inset 0 0 0 1px
+            color-mix(in oklch, oklch(0.627 0.194 149.214) 60%, transparent);
     }
 
     /* Flagged: a ring around the cell and a squiggly underline under each
@@ -153,6 +156,14 @@
        red flag ring so both stay visible. */
     .sheet-cell-current {
         box-shadow: inset 0 0 0 2px var(--primary);
+    }
+
+    .sheet-cell-edited.sheet-cell-current {
+        background-color: color-mix(
+            in oklch,
+            oklch(0.723 0.219 149.579) 16%,
+            transparent
+        );
     }
 
     .sheet-cell-flagged.sheet-cell-current {

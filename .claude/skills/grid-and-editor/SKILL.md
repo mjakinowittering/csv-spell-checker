@@ -6,8 +6,10 @@ description: The SVAR Svelte Data Grid spreadsheet view and the cell edit dialog
 # Grid and cell editor
 
 `CLAUDE.md` invariants that apply here: **cells are read-only at rest** and every
-edit goes through the centred modal; **edited cells keep a permanent tint**,
-independent of error state; **after an edit only that cell is re-checked**.
+edit goes through the centred modal; **edited state is permanent**, shown green
+only while the cell has no issues (a flagged cell's red ring always wins);
+**Grammarly is blocked unless allowed**; **after an edit only that cell is
+re-checked**.
 
 ## Files
 
@@ -51,8 +53,13 @@ scroll). `snapshot()` merges overrides for export.
   value) and is always `open`; any dismissal — overlay click, Escape, the X,
   Cancel — calls `oncancel` and saves nothing. Confirm (or Ctrl/Cmd+Enter)
   commits.
-- The textarea sets `lang` to the column's language (omitted for None) and
-  `spellcheck`, so native spellcheck and extensions work while typing.
+- The textarea sets `lang` to the column's language (omitted for None and
+  Unsupported) and `spellcheck`, so native spellcheck works while typing.
+- Grammarly: `grammarlyAttributes(allowed)` (`src/lib/editor/grammarly.ts`)
+  spreads `data-gramm`, `data-gramm_editor` and `data-enable-grammarly` = `false`
+  onto the textarea unless the footer's "Allow Grammarly" `Switch` is on. The
+  choice is `grammarlyPreference.allowed` (`grammarly-preference.svelte.ts`), a
+  device preference in localStorage, not part of any sheet.
 - Below the textarea, `CellIssueChips` lists the cell's flagged words
   (`sheet.cellIssueWords`) under "Issues in this cell:". Dismissing a chip
   ignores that word across the sheet (see the spellcheck-worker skill); the
@@ -66,6 +73,14 @@ scroll). `snapshot()` merges overrides for export.
 
 `SheetGrid` maps the Willow theme's `--wx-*` variables onto the shadcn tokens so
 the grid follows light/dark with the rest of the app, and passes `fonts={false}`
-(no CDN fonts). Letter and row-number cells use the muted surface; the edited
-tint is the `sheet-cell-edited` class, defined once in `layout.css` so the status
-bar legend can show the same swatch.
+(no CDN fonts). Letter and row-number cells use the muted surface.
+
+Cell state classes live once in `layout.css` so the status bar legend shows the
+same swatches. `SheetCellText` applies them with a fixed precedence:
+
+1. Flagged (`sheet-cell-flagged` ring + `sheet-misspelling` squiggles) always
+   shows, edited or not.
+2. `sheet-cell-edited` (green tint and 1px border) only when the cell is edited
+   **and** has no flags. Every edited cell also carries `data-edited`, whatever
+   its flag state.
+3. `sheet-cell-current` (primary ring) combines with either.

@@ -69,6 +69,41 @@ describe('SheetGrid', () => {
         ).toBe(true);
     });
 
+    it('shows the flag ring instead of the edited style until the cell is clean', async () => {
+        const sheet = readySheet();
+        const target = sizedTarget();
+        await render(SheetGrid, {
+            target,
+            props: { sheet, oneditcell: () => {} }
+        });
+        await expect.poll(() => cellAt(target, 2, 1)).not.toBeNull();
+
+        sheet.editCell(2, 1, 'Blaeks');
+        sheet.applyCellFlags({
+            row: 2,
+            column: 1,
+            text: 'Blaeks',
+            ranges: [{ start: 0, end: 6 }]
+        });
+        flushSync();
+
+        const cell = () => cellAt(target, 2, 1);
+        await expect
+            .poll(() => cell()?.classList.contains('sheet-cell-flagged'))
+            .toBe(true);
+        expect(cell()?.classList.contains('sheet-cell-edited')).toBe(false);
+        expect(cell()?.hasAttribute('data-edited')).toBe(true);
+
+        sheet.editCell(2, 1, 'Blakes');
+        sheet.applyCellFlags({ row: 2, column: 1, text: 'Blakes', ranges: [] });
+        flushSync();
+
+        await expect
+            .poll(() => cell()?.classList.contains('sheet-cell-edited'))
+            .toBe(true);
+        expect(cell()?.classList.contains('sheet-cell-flagged')).toBe(false);
+    });
+
     it('updates the header row after an edit', async () => {
         const sheet = readySheet();
         const target = sizedTarget();

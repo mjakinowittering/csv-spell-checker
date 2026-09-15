@@ -130,7 +130,7 @@ when the elided word is correct. Offsets are UTF-16, as used by `String.slice`.
   when `sheet-result` arrives, those cells keep whatever their own `cell-result`
   set, even if it arrived first. This is what stops a slow full-sheet result
   overwriting a newer single-cell re-check.
-- Flags never touch the edited tint, and vice versa.
+- A flagged cell hides the green edited style; the edited state itself is never changed by flags.
 
 ## Rendering
 

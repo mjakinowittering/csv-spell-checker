@@ -48,6 +48,7 @@
     "editor_cancel_action": "Cancel",
     "editor_confirm_action": "Confirm",
     "editor_issues_title": "Issues in this cell:",
+    "editor_grammarly_label": "Allow Grammarly",
     "editor_ignore_word_hint": "Ignore “{word}” in this sheet",
     "flagged_words_title": "Flagged words across this sheet",
     "flagged_words_description": "Ignoring a word stops it being flagged anywhere in this sheet.",

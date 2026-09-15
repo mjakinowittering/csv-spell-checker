@@ -24,16 +24,18 @@
     );
 </script>
 
-<!-- Fills the cell so a click anywhere in it opens the editor. Edited tint
-     and flag ring are independent: a cell can show both. -->
+<!-- Fills the cell so a click anywhere in it opens the editor. A flagged
+     cell always shows its red ring and squiggles, edited or not; the green
+     edited style only shows once an edited cell has no issues. -->
 <span
     data-sheet-row={row}
     data-sheet-column={column}
+    data-edited={edited ? '' : undefined}
     aria-current={current ? 'location' : undefined}
     class={[
         'sheet-cell block h-full w-full cursor-cell truncate px-2 leading-8',
         header && 'font-semibold',
-        edited && 'sheet-cell-edited',
+        edited && !parts && 'sheet-cell-edited',
         parts && 'sheet-cell-flagged',
         current && 'sheet-cell-current'
     ]}

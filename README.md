@@ -68,7 +68,7 @@ _No open bugs._
 #### Grid
 
 - [x] **Spreadsheet grid and cell editor** — SVAR data grid with lettered columns and numbered rows, read-only cells that open a spellcheck-enabled modal editor, a permanent tint on edited cells, and undo/redo.
-- [ ] **Cell editing fixes** — a Grammarly toggle in the editor (off by default), and a flagged cell's red ring always winning over the edited style, with edited-and-clean cells shown in green.
+- [x] **Cell editing fixes** — a Grammarly toggle in the editor (off by default), and a flagged cell's red ring always winning over the edited style, with edited-and-clean cells shown in green.
 
 #### Spellcheck
 
