@@ -68,6 +68,15 @@
         </span>
     </div>
 
+    <!-- The active sheet's languages sit next to the app name. -->
+    {#if hasSheet && languages.length > 0}
+        <Separator
+            orientation="vertical"
+            class="mx-1 data-vertical:h-5 data-vertical:self-center max-sm:hidden"
+        />
+        <LanguageFlags {languages} />
+    {/if}
+
     {#if sheetOpen}
         <Separator
             orientation="vertical"
@@ -103,14 +112,6 @@
             {onpreviousissue}
             {onnextissue}
         />
-    {/if}
-
-    {#if hasSheet && languages.length > 0}
-        <Separator
-            orientation="vertical"
-            class="mx-1 data-vertical:h-5 data-vertical:self-center max-sm:hidden"
-        />
-        <LanguageFlags {languages} />
     {/if}
 
     <div class="ml-auto flex items-center gap-1">
