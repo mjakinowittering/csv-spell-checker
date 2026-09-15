@@ -38,7 +38,11 @@ Load the relevant skill file when working in that domain. Skills defer to this f
 - Cells are read-only at rest. All editing happens through the centered modal dialog, never inline.
 - Paste always creates a new sheet. Never merges into or targets existing cells.
 - Full-sheet spellcheck runs in a Web Worker, never on the main thread.
-- After an edit, only the edited cell is re-checked, not the whole sheet.
+- After an edit, only the edited cell is re-checked, not the whole sheet. The exceptions are sheet-wide actions (ignoring a word, fixing a word everywhere, and undoing or redoing such a fix), which re-check the whole sheet in the worker.
+- hunspell-wasm is the only spellcheck engine (Typo.js is gone). Every flagged word carries Hunspell's suggestions (top one plus up to two runners-up) in both `sheet-result` and `cell-result`.
+- Suggestions and fixes live only in the cell editor's issues list and the sheet-wide flagged-words dialog, as `word → suggestion` rows. No live squiggles inside the editor textarea and no hover cards over text.
+- In the cell editor, Fix rewrites that word in the draft only (whole-word matches); like typing, it is saved by Confirm. Ignore still applies sheet-wide immediately.
+- In the flagged-words dialog, Fix rewrites every flagged occurrence of that word across the sheet immediately (whole words from the check, never substrings; each occurrence takes its own top suggestion). Every affected cell is marked edited, the whole fix is a single undo step (one Undo reverts all of it), the sheet is persisted, and the sheet is re-checked.
 - Edited state is permanent (undo keeps it). An edited cell with no spelling issues shows a green tint and border; a flagged cell always shows its red ring and squiggles instead, edited or not.
 - Grammarly is blocked in the cell editor (`data-gramm`, `data-gramm_editor`, `data-enable-grammarly` set to `false`) unless the user turns on the editor's "Allow Grammarly" switch; that choice is remembered per device in localStorage.
 - Flagged cells show a squiggly underline plus a ring highlight, and this persists after blur.

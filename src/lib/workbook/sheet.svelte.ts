@@ -9,7 +9,7 @@ import type { LanguageGuess } from '$lib/languages/detect';
 import type { CellFlags, WordFlag } from '$lib/spellcheck/protocol';
 import { ignoreKey, type MisspellingRange } from '$lib/spellcheck/tokenize';
 
-import { EditHistory, type CellEdit } from './history.svelte';
+import { EditHistory, type CellEdit, type EditStep } from './history.svelte';
 
 export type SheetPhase =
     | { kind: 'parsing'; progress: number }
@@ -28,6 +28,13 @@ export type FlaggedWord = {
     key: string;
     word: string;
     count: number;
+    suggestion: string | null;
+};
+
+/** A flagged word in one cell, with Hunspell's top suggestion if it has one. */
+export type CellIssue = {
+    key: string;
+    word: string;
     suggestion: string | null;
 };
 
@@ -64,6 +71,40 @@ function uniformLanguage(
         languages.every((language) => language === first)
         ? first
         : null;
+}
+
+/**
+ * Rewrite the chosen flagged ranges with their top suggestion. The remaining
+ * ranges are shifted to stay on their words. Null when nothing changed.
+ */
+function applyFixes(
+    text: string,
+    ranges: readonly WordFlag[],
+    shouldFix: (range: WordFlag) => boolean
+): { text: string; ranges: WordFlag[] } | null {
+    let result = '';
+    let cursor = 0;
+    let shift = 0;
+    let changed = false;
+    const kept: WordFlag[] = [];
+    for (const range of [...ranges].sort((a, b) => a.start - b.start)) {
+        const suggestion = range.suggestions[0];
+        result += text.slice(cursor, range.start);
+        if (suggestion !== undefined && shouldFix(range)) {
+            result += suggestion;
+            shift += suggestion.length - (range.end - range.start);
+            changed = true;
+        } else {
+            result += text.slice(range.start, range.end);
+            kept.push({
+                ...range,
+                start: range.start + shift,
+                end: range.end + shift
+            });
+        }
+        cursor = range.end;
+    }
+    return changed ? { text: result + text.slice(cursor), ranges: kept } : null;
 }
 
 function parseCellKey(key: string): CellPosition {
@@ -221,20 +262,27 @@ export class Sheet {
         if (value === before) return null;
         const edit: CellEdit = { row, column, before, after: value };
         this.#write(row, column, value);
-        this.history.push(edit);
+        this.history.push([edit]);
         return edit;
     }
 
-    undo(): CellEdit | null {
-        const edit = this.history.undo();
-        if (edit) this.#write(edit.row, edit.column, edit.before);
-        return edit;
+    /** Reverse the last step (every cell of a sheet-wide fix at once). */
+    undo(): EditStep | null {
+        const step = this.history.undo();
+        if (!step) return null;
+        for (const edit of [...step].reverse()) {
+            this.#write(edit.row, edit.column, edit.before);
+        }
+        return step;
     }
 
-    redo(): CellEdit | null {
-        const edit = this.history.redo();
-        if (edit) this.#write(edit.row, edit.column, edit.after);
-        return edit;
+    redo(): EditStep | null {
+        const step = this.history.redo();
+        if (!step) return null;
+        for (const edit of step) {
+            this.#write(edit.row, edit.column, edit.after);
+        }
+        return step;
     }
 
     /** Every cell's current value, edits applied, header row first. */
@@ -255,19 +303,25 @@ export class Sheet {
         return this.#flags.get(cellKey(row, column))?.ranges;
     }
 
-    /** The distinct misspelled words in one cell, in the order they appear. */
-    cellIssueWords(row: number, column: number): string[] {
+    /**
+     * The distinct misspelled words in one cell, in the order they appear,
+     * each with its top suggestion.
+     */
+    cellIssues(row: number, column: number): CellIssue[] {
         const flag = this.#flags.get(cellKey(row, column));
         if (!flag) return [];
         // Local scratch, never rendered: no reactivity needed.
         // eslint-disable-next-line svelte/prefer-svelte-reactivity
-        const words = new Map<string, string>();
-        for (const { start, end } of flag.ranges) {
+        const issues = new Map<string, CellIssue>();
+        for (const { start, end, suggestions } of flag.ranges) {
             const word = flag.text.slice(start, end);
             const key = ignoreKey(word);
-            if (!words.has(key)) words.set(key, word);
+            const suggestion = suggestions[0] ?? null;
+            const issue = issues.get(key);
+            if (issue) issue.suggestion ??= suggestion;
+            else issues.set(key, { key, word, suggestion });
         }
-        return [...words.values()];
+        return [...issues.values()];
     }
 
     /** Every flagged word in the sheet, most frequent first. */
@@ -313,6 +367,41 @@ export class Sheet {
             else this.#flags.delete(cell);
         }
         return true;
+    }
+
+    /**
+     * Replace a flagged word with its suggestion everywhere in the sheet, as
+     * one undo step. Only flagged occurrences change, and each is a whole word
+     * found by the check, so a longer word containing it is untouched. Each
+     * occurrence takes its own top suggestion, which keeps its capitalisation.
+     * Affected cells are marked edited, and their other flags stay put. The
+     * caller re-checks the sheet in the worker. Returns the edits: none when
+     * no occurrence had a suggestion.
+     */
+    fixWord(word: string): CellEdit[] {
+        const key = ignoreKey(word);
+        const edits: CellEdit[] = [];
+        for (const [cell, flag] of [...this.#flags.entries()]) {
+            const { row, column } = parseCellKey(cell);
+            // Stale: the cell changed since it was checked.
+            if (this.cellValue(row, column) !== flag.text) continue;
+            const fixed = applyFixes(
+                flag.text,
+                flag.ranges,
+                ({ start, end }) =>
+                    ignoreKey(flag.text.slice(start, end)) === key
+            );
+            if (!fixed) continue;
+            this.#write(row, column, fixed.text);
+            if (fixed.ranges.length > 0) {
+                this.#flags.set(cell, fixed);
+            } else {
+                this.#flags.delete(cell);
+            }
+            edits.push({ row, column, before: flag.text, after: fixed.text });
+        }
+        this.history.push(edits);
+        return edits;
     }
 
     /** Flagged cells in reading order: row by row, left to right. */

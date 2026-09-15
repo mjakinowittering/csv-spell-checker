@@ -11,20 +11,23 @@
         args: {
             open: true,
             words: [
+                { key: 'trés', word: 'Trés', count: 47, suggestion: 'Très' },
                 {
-                    key: 'hikking',
-                    word: 'hikking',
-                    count: 4,
-                    suggestion: 'hiking'
+                    key: 'nettoye',
+                    word: 'nettoye',
+                    count: 31,
+                    suggestion: 'nettoie'
                 },
+                { key: 'facil', word: 'facil', count: 2, suggestion: 'facile' },
                 {
-                    key: 'recieve',
-                    word: 'Recieve',
-                    count: 2,
-                    suggestion: 'Receive'
+                    key: 'vittesse',
+                    word: 'vittesse',
+                    count: 3,
+                    suggestion: 'vitesse'
                 },
-                { key: 'adress', word: 'adress', count: 1, suggestion: null }
+                { key: 'xyzzq', word: 'xyzzq', count: 1, suggestion: null }
             ],
+            onfix: fn(),
             onignore: fn()
         }
     });

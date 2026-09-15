@@ -58,6 +58,34 @@ export function ignoreKey(word: string): string {
     return word.replace(/’/g, "'").toLocaleLowerCase();
 }
 
+/**
+ * Replace every word in `text` whose `ignoreKey` is `key` with `replacement`.
+ * Whole checkable words only (hyphenated parts count), so a longer word that
+ * merely contains it is left alone. A capitalised word gets a capitalised
+ * replacement.
+ */
+export function replaceWord(
+    text: string,
+    key: string,
+    replacement: string
+): string {
+    let result = '';
+    let cursor = 0;
+    for (const { word, start, end } of tokenize(text)) {
+        if (ignoreKey(word) !== key) continue;
+        result += text.slice(cursor, start) + matchCase(word, replacement);
+        cursor = end;
+    }
+    return result + text.slice(cursor);
+}
+
+function matchCase(word: string, replacement: string): string {
+    const first = word.charAt(0);
+    return first === first.toLowerCase()
+        ? replacement
+        : replacement.charAt(0).toUpperCase() + replacement.slice(1);
+}
+
 /** Ranges of the words in `text` that `check` rejects and are not ignored. */
 export function findMisspellings(
     text: string,

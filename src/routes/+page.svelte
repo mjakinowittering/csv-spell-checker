@@ -26,6 +26,7 @@
         type IssueDirection
     } from '$lib/spellcheck/navigation';
     import { Spellchecker } from '$lib/spellcheck/spellchecker';
+    import type { EditStep } from '$lib/workbook/history.svelte';
     import { importFiles, importPastedText } from '$lib/workbook/importer';
     import { Sheet } from '$lib/workbook/sheet.svelte';
     import { Workbook } from '$lib/workbook/workbook.svelte';
@@ -183,20 +184,40 @@
         spellchecker.checkSheet(sheet);
     }
 
+    /**
+     * Replace a word with its suggestion in every cell as one undo step,
+     * then re-check the whole sheet in the worker, as ignoring does.
+     */
+    function fixWord(sheet: Sheet, word: string) {
+        if (sheet.fixWord(word).length === 0) return;
+        persistence.sheetChanged(sheet);
+        spellchecker.checkSheet(sheet);
+    }
+
     function undo() {
         const sheet = readySheet();
-        const edit = sheet?.undo();
-        if (!sheet || !edit) return;
+        const step = sheet?.undo();
+        if (!sheet || !step) return;
         persistence.sheetChanged(sheet);
-        spellchecker.checkCell(sheet, edit.row, edit.column);
+        recheck(sheet, step);
     }
 
     function redo() {
         const sheet = readySheet();
-        const edit = sheet?.redo();
-        if (!sheet || !edit) return;
+        const step = sheet?.redo();
+        if (!sheet || !step) return;
         persistence.sheetChanged(sheet);
-        spellchecker.checkCell(sheet, edit.row, edit.column);
+        recheck(sheet, step);
+    }
+
+    /** A single edit re-checks its cell; a sheet-wide fix, the sheet. */
+    function recheck(sheet: Sheet, step: EditStep) {
+        const [edit] = step;
+        if (step.length === 1 && edit) {
+            spellchecker.checkCell(sheet, edit.row, edit.column);
+        } else {
+            spellchecker.checkSheet(sheet);
+        }
     }
 
     // The grid scrolls to and focuses whichever issue becomes current.
@@ -389,6 +410,10 @@
 <FlaggedWordsDialog
     bind:open={flaggedWordsOpen}
     words={readySheet()?.flaggedWords() ?? []}
+    onfix={(word) => {
+        const sheet = readySheet();
+        if (sheet) fixWord(sheet, word);
+    }}
     onignore={(word) => {
         const sheet = readySheet();
         if (sheet) ignoreWord(sheet, word);
@@ -403,7 +428,7 @@
             column={target.column}
             value={target.sheet.cellValue(target.row, target.column)}
             language={target.sheet.languages[target.column] ?? 'none'}
-            issues={target.sheet.cellIssueWords(target.row, target.column)}
+            issues={target.sheet.cellIssues(target.row, target.column)}
             onconfirm={confirmEdit}
             onignoreword={(word) => ignoreWord(target.sheet, word)}
             onclosed={() => {

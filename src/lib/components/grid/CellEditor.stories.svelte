@@ -2,6 +2,8 @@
     import { defineMeta } from '@storybook/addon-svelte-csf';
     import { fn } from 'storybook/test';
 
+    import { LANGUAGE_CODES } from '$lib/languages/codes';
+
     import CellEditor from './CellEditor.svelte';
 
     const { Story } = defineMeta({
@@ -9,11 +11,14 @@
         component: CellEditor,
         tags: ['autodocs'],
         args: {
-            row: 1,
-            column: 1,
-            value: 'Loves hikking and coffee',
-            language: 'en-GB',
-            issues: ['hikking'],
+            row: 3,
+            column: 3,
+            value: 'Trés résistant, idéal pour les chiens qui aiment macher pendant des heures.',
+            language: 'fr',
+            issues: [
+                { key: 'trés', word: 'Trés', suggestion: 'Très' },
+                { key: 'macher', word: 'macher', suggestion: 'mâcher' }
+            ],
             open: true,
             onconfirm: fn(),
             onignoreword: fn(),
@@ -22,30 +27,28 @@
         argTypes: {
             language: {
                 control: 'select',
-                options: [
-                    'en-GB',
-                    'en-US',
-                    'fr',
-                    'de',
-                    'es',
-                    'none',
-                    'unsupported'
-                ]
+                options: [...LANGUAGE_CODES, 'none', 'unsupported']
             }
         }
     });
 </script>
 
-<Story name="With issues" />
+<Story name="With suggestions" />
 
 <Story
-    name="Several issues"
+    name="No suggestion for a word"
     args={{
-        value: 'Recieve parcels at teh side door',
-        issues: ['Recieve', 'teh']
+        value: 'Livraison rapide, xyzzq garanti.',
+        issues: [{ key: 'xyzzq', word: 'xyzzq', suggestion: null }]
     }}
 />
 
-<Story name="Clean" args={{ value: 'Loves hiking and coffee', issues: [] }} />
+<Story
+    name="Clean"
+    args={{
+        value: 'Très résistant, idéal pour les chiens.',
+        issues: []
+    }}
+/>
 
 <Story name="Column not checked" args={{ language: 'none', issues: [] }} />

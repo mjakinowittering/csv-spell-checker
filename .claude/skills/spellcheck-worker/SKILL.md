@@ -129,6 +129,19 @@ The sheet keeps each flagged cell's checked text alongside its ranges, so
 toolbar badge's "Flagged words across this sheet" dialog, deduplicated with
 counts) read the words back exactly as they were flagged.
 
+Every range is a `WordFlag`: `{ start, end, suggestions }`. The worker asks
+`getSpellingSuggestions` for each flagged word (straight apostrophes, top
+`MAX_SUGGESTIONS` = 3, memoised per language because suggestions cost far more
+than checks) and sends them in both `sheet-result` and `cell-result`.
+`cellIssues()` and `flaggedWords()` expose each word's first available
+suggestion.
+
+`sheet.fixWord(word)` is the sheet-wide Fix: for every flag whose cell still
+holds the checked text, it rewrites each range with that key to its own top
+suggestion (ranges are whole tokens, so "Trésor" is never touched), shifts the
+cell's remaining ranges, marks the cell edited and pushes all the edits as one
+undo step. The page then persists and runs a full `checkSheet`.
+
 `sheet.ignoreWord(word)` adds the key and clears that word's ranges from every
 flag at once, so the UI updates immediately. The page then persists the sheet
 and runs a full `checkSheet` in the worker with the new list, which is

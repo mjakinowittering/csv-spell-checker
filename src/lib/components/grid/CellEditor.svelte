@@ -10,8 +10,10 @@
     import { cellReference } from '$lib/grid/coordinates';
     import { isLanguageCode, type ColumnLanguage } from '$lib/languages/codes';
     import { m } from '$lib/paraglide/messages';
+    import { replaceWord } from '$lib/spellcheck/tokenize';
+    import type { CellIssue } from '$lib/workbook/sheet.svelte';
 
-    import CellIssueChips from './CellIssueChips.svelte';
+    import CellIssueList from './CellIssueList.svelte';
 
     let {
         row,
@@ -28,8 +30,8 @@
         column: number;
         value: string;
         language: ColumnLanguage;
-        /** The cell's flagged words, as last checked. */
-        issues?: readonly string[];
+        /** The cell's flagged words and suggestions, as last checked. */
+        issues?: readonly CellIssue[];
         onconfirm: (value: string) => void;
         /** Ignore a flagged word across the whole sheet. */
         onignoreword?: (word: string) => void;
@@ -48,6 +50,22 @@
         return value;
     }
     let draft = $state(initialDraft());
+
+    // Words already fixed in the draft leave the issues list.
+    let fixed = $state<string[]>([]);
+    const openIssues = $derived(
+        issues.filter((issue) => !fixed.includes(issue.key))
+    );
+
+    /**
+     * Accept a suggestion in the draft only, like typing it: the cell changes
+     * when Confirm is pressed.
+     */
+    function fix(issue: CellIssue) {
+        if (issue.suggestion === null) return;
+        draft = replaceWord(draft, issue.key, issue.suggestion);
+        fixed = [...fixed, issue.key];
+    }
 
     const grammarlyId = $props.id();
 
@@ -92,7 +110,11 @@
         />
 
         {#if onignoreword}
-            <CellIssueChips words={issues} onignore={onignoreword} />
+            <CellIssueList
+                issues={openIssues}
+                onfix={fix}
+                onignore={onignoreword}
+            />
         {/if}
 
         <Dialog.Footer class="sm:items-center">

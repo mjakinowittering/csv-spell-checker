@@ -5,21 +5,26 @@
     import { m } from '$lib/paraglide/messages';
     import type { FlaggedWord } from '$lib/workbook/sheet.svelte';
 
+    import WordSuggestion from './WordSuggestion.svelte';
+
     let {
         open = $bindable(false),
         words,
+        onfix,
         onignore
     }: {
         open?: boolean;
-        /** Deduplicated flagged words with their occurrence counts. */
+        /** Deduplicated flagged words with suggestions and occurrence counts. */
         words: readonly FlaggedWord[];
+        /** Replace a word with its suggestion everywhere in the sheet. */
+        onfix: (word: string) => void;
         /** Ignore a word for the whole sheet. */
         onignore: (word: string) => void;
     } = $props();
 </script>
 
 <Dialog.Root bind:open>
-    <Dialog.Content class="sm:max-w-md">
+    <Dialog.Content class="sm:max-w-xl">
         <Dialog.Header>
             <Dialog.Title>{m.flagged_words_title()}</Dialog.Title>
             <Dialog.Description>
@@ -33,21 +38,37 @@
             </p>
         {:else}
             <ul class="-mx-1 max-h-[60vh] divide-y overflow-y-auto px-1">
-                {#each words as { key, word, count } (key)}
+                {#each words as { key, word, count, suggestion } (key)}
                     <li
                         data-flagged-word={key}
-                        class="flex items-center gap-3 py-2"
+                        class="flex items-center gap-2 py-1.5 text-sm"
                     >
-                        <span class="min-w-0 flex-1 truncate font-medium">
-                            {word}
-                        </span>
-                        <span class="text-muted-foreground shrink-0 text-sm">
+                        <div class="min-w-0 flex-1">
+                            <WordSuggestion {word} {suggestion} />
+                        </div>
+                        <span
+                            class="text-muted-foreground shrink-0 pr-1 tabular-nums"
+                        >
                             {count === 1
                                 ? m.flagged_words_count_one()
                                 : m.flagged_words_count({ count })}
                         </span>
                         <Button
                             variant="outline"
+                            size="sm"
+                            disabled={suggestion === null}
+                            aria-label={suggestion === null
+                                ? undefined
+                                : m.flagged_words_fix_hint({
+                                      word,
+                                      suggestion
+                                  })}
+                            onclick={() => onfix(word)}
+                        >
+                            {m.flagged_words_fix_action()}
+                        </Button>
+                        <Button
+                            variant="ghost"
                             size="sm"
                             aria-label={m.flagged_words_ignore_hint({ word })}
                             onclick={() => onignore(word)}

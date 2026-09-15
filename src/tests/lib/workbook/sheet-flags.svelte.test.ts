@@ -140,8 +140,10 @@ describe('Sheet ignored words', () => {
         sheet.beginCheck();
         sheet.applySheetFlags([twice]);
         // Flag text is kept, so the words read back as they were checked.
-        expect(sheet.cellIssueWords(2, 1)).toEqual(['Hikking']);
-        expect(sheet.cellIssueWords(1, 1)).toEqual([]);
+        expect(sheet.cellIssues(2, 1)).toEqual([
+            { key: 'hikking', word: 'Hikking', suggestion: 'hiking' }
+        ]);
+        expect(sheet.cellIssues(1, 1)).toEqual([]);
     });
 
     it('counts flagged words across the sheet, most frequent first', () => {
@@ -210,7 +212,9 @@ describe('Sheet ignored words', () => {
             }
         ]);
         sheet.ignoreWord('hikking');
-        expect(sheet.cellIssueWords(1, 1)).toEqual(['Recieves']);
+        expect(sheet.cellIssues(1, 1)).toEqual([
+            { key: 'recieves', word: 'Recieves', suggestion: 'Receives' }
+        ]);
     });
 
     it('persists the ignore list in the sheet record', () => {

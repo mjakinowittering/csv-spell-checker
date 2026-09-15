@@ -60,10 +60,17 @@ scroll). `snapshot()` merges overrides for export.
   onto the textarea unless the footer's "Allow Grammarly" `Switch` is on. The
   choice is `grammarlyPreference.allowed` (`grammarly-preference.svelte.ts`), a
   device preference in localStorage, not part of any sheet.
-- Below the textarea, `CellIssueChips` lists the cell's flagged words
-  (`sheet.cellIssueWords`) under "Issues in this cell:". Dismissing a chip
-  ignores that word across the sheet (see the spellcheck-worker skill); the
-  draft is untouched and the dialog stays open.
+- Below the textarea, `CellIssueList` lists the cell's flagged words
+  (`sheet.cellIssues`) under "Issues in this cell:" as `word → suggestion` rows
+  (`WordSuggestion`) with **Fix** and **Ignore**. Fix calls
+  `replaceWord(draft, key, suggestion)` on the draft only (whole words, capital
+  kept) and hides that row; Confirm saves it like any edit. Fix is disabled
+  when Hunspell has no suggestion. Ignore applies sheet-wide at once (see the
+  spellcheck-worker skill); the dialog stays open.
+- Undo history is a stack of **steps** (`EditStep`, an array of `CellEdit`s).
+  A manual edit is a one-edit step; a sheet-wide `fixWord` is one step holding
+  every cell it rewrote, so one Undo reverts it all. The page re-checks one
+  cell after undoing a single edit, or the whole sheet after a multi-cell step.
 - `editCell` returns `null` for an unchanged value: no tint, no history entry.
 - Undo/redo: toolbar buttons and Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z, Ctrl/Cmd+Y — ignored
   while focus is in an editable element or the dialog is open. Undo restores the
