@@ -24,16 +24,18 @@ branch.
 <type>/<short-kebab-summary>
 ```
 
-| type       | use for                                        |
-| ---------- | ---------------------------------------------- |
-| `feat`     | a new user-facing capability (README Features) |
-| `fix`      | a defect (README Bugs)                         |
-| `refactor` | restructuring with no behaviour change         |
-| `perf`     | a measurable speed or memory improvement       |
-| `test`     | tests only                                     |
-| `docs`     | documentation, README, skills                  |
-| `chore`    | tooling, config, dependencies, CI              |
+| type       | use for                                            |
+| ---------- | -------------------------------------------------- |
+| `feat`     | a new user-facing capability (README New Features) |
+| `fix`      | a defect (README Bugs)                             |
+| `refactor` | restructuring with no behaviour change             |
+| `perf`     | a measurable speed or memory improvement           |
+| `test`     | tests only                                         |
+| `docs`     | documentation, README, skills                      |
+| `chore`    | tooling, config, dependencies, CI                  |
 
+- README Improvements take the type that fits the change: `feat` when the user
+  sees different behaviour, otherwise `perf`, `refactor`, `test` or `chore`.
 - Lowercase, hyphen-separated, summary of 2–5 words, no trailing hyphen.
 - Name the outcome, not the activity: `feat/csv-export`, not `feat/working-on-download`.
 - One approved plan → one branch.
@@ -77,8 +79,8 @@ A breaking change adds `!` after the type/scope and a `BREAKING CHANGE:` footer.
   gitignored.
 - The project's lint, type-check and test scripts (see `package.json`) pass
   before committing. If something is knowingly left failing, say so in the body.
-- The final commit on a branch that implements a README todo item also ticks
-  that item.
+- The final commit on a branch that implements a README todo item also removes
+  that item from the list (never ticks it; see the todo-review skill).
 
 ## Things that need the user to ask first
 

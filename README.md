@@ -59,47 +59,28 @@ Hunspell compiled to WebAssembly (LGPL-2.0, GPL-2.0 or MPL-1.1).
 
 ### Bugs
 
-_No open bugs._
+#### Grid
 
-### Features
+- [ ] **Grid accessibility violations from SVAR** — the grid's column-resize grips put `aria-label` on `role="presentation"`, and its first row gets `aria-rowindex="0"`. Both come from `wx-svelte-grid`'s own markup, so the `SheetGrid` stories switch those two axe rules off. Report upstream, or patch the markup after render, then re-enable the rules.
 
-#### Shell
-
-- [x] **App shell** — toolbar (app icon, undo/redo, spelling-issues counter with next/previous, download, upload), closable sheet tabs with a plus button above a row-count status bar, and OS-default theme with a manual toggle.
-- [x] **First-run empty state** — explains the app's purpose, shows the upload → grid → flagged errors flow, and lists the supported languages as chips.
+### Improvements
 
 #### Import
 
-- [x] **CSV upload and paste** — drag-drop or browse a CSV, or paste tab-separated content; each opens a new "Sheet N" or "Pasted sheet" tab with a bold frozen header row and a parsing progress indicator.
-- [x] **Language detection and confirmation** — Franc samples the first 10 non-header rows for one sheet-wide guess that pre-fills a per-column language screen, with low-confidence warnings, shown for every new sheet.
-
-- [x] **Language detection overhaul** — Chrome's built-in Language Detector with Franc as the fallback, no pre-filled guess below a confidence threshold, unsupported languages allowed but marked, and a confirmation screen led by one sheet-wide picker with per-column overrides tucked below.
-
-#### Persistence
-
-- [x] **IndexedDB persistence** — every open sheet (cells and edits, name, languages, ignore list) is written through to IndexedDB on each change and reopened on load; spelling flags are always recomputed, never stored.
-
-#### Grid
-
-- [x] **Spreadsheet grid and cell editor** — SVAR data grid with lettered columns and numbered rows, read-only cells that open a spellcheck-enabled modal editor, a permanent tint on edited cells, and undo/redo.
-- [x] **Cell editing fixes** — a Grammarly toggle in the editor (off by default), and a flagged cell's red ring always winning over the edited style, with edited-and-clean cells shown in green.
-
-#### Spellcheck
-
-- [x] **Spellcheck worker** — a Web Worker checks every non-ignored column with Hunspell dictionaries, flags cells with a squiggly underline and ring, and re-checks only the edited cell after a change.
-- [x] **Spelling-issue navigation** — the toolbar counter shows the issue count and next/previous jumps between flagged cells.
-- [x] **Ignore words** — flagged words show as dismissible chips in the cell editor, and the issue badge opens a sheet-wide summary of flagged words; dismissing a word adds it to the sheet's ignore list and rechecks the whole sheet.
-- [x] **Language visibility** — flag and language code in the toolbar (stacked flags for mixed sheets), a flag before each tab name, the selected cell's language in the status bar, and a flag-emoji font fallback for Windows.
-- [x] **Migrate to hunspell-wasm** — replace Typo.js with the WebAssembly Hunspell build, which loads every dictionary in under 100ms (Typo.js takes 3.4s and 322MB for French) and can load Italian, so Italian can come back into scope, along with Portuguese, Dutch, Polish, Swedish, Danish, Norwegian and Czech.
-
-#### Sheets
-
-- [x] **Sheet renaming and layout** — rename a tab from its right-click menu, and hide the status bar when no sheet is open.
-
-#### Export
-
-- [x] **CSV export** — the download button saves the active sheet as a CSV file.
+- [ ] **Download Chrome's language model on a user gesture** — when Chrome's detector reports `downloadable`, creating it needs a recent click, which has usually expired by the time a file is parsed, so detection falls back to Franc. Start the model download from the upload/paste click instead, so later sheets get the built-in detector.
+- [ ] **Smaller Franc fallback** — switch `franc` (245 KB, 117 KB gzipped, loaded only when Chrome's detector is unavailable) to `franc-min`, after checking it still covers every supported language and the unsupported ones worth naming. Short samples (two rows of French) currently fall just under Franc's confidence threshold.
 
 #### Tooling
 
-- [x] **Storybook for every component** — a story per component (large ones split into smaller bindable pieces), a light/dark theme toggle, and every story accessibility-checked in both themes.
+- [ ] **Quiet the build warnings** — `vite.config.ts` uses `__dirname`, which Vite's native config loader will not support (use `import.meta.dirname`), and the build notes that `hunspell-wasm`'s Node-only `fs/promises` and `module` imports are externalised (harmless in the browser).
+- [ ] **Review the skills against the code** — check every skill in `.claude/skills/` against the current implementation and update stale details (files, APIs, behaviour); where the intended behaviour is unclear, run an interactive Q&A with the owner instead of guessing.
+
+### New Features
+
+#### Spellcheck
+
+- [ ] **Change language from the toolbar flag** — clicking the active sheet's flag (or stacked flags) in the toolbar reopens its language choice (sheet-wide picker with per-column overrides) and re-checks the whole sheet with the new languages.
+
+#### Tooling
+
+- [ ] **End-to-end browser tests** — upload → confirm → check → edit → ignore → rename → reload → export have only been verified with throwaway Playwright scripts. Add them as a checked-in suite (against the dev server and the production build, where the worker's `.wasm` path differs).
