@@ -62,10 +62,12 @@ scroll). `snapshot()` merges overrides for export.
   device preference in localStorage, not part of any sheet.
 - Below the textarea, `CellIssueList` lists the cell's flagged words
   (`sheet.cellIssues`) under "Issues in this cell:" as `word → suggestion` rows
-  (`WordSuggestion`) with **Fix** and **Ignore**. Fix calls
-  `replaceWord(draft, key, suggestion)` on the draft only (whole words, capital
-  kept) and hides that row; Confirm saves it like any edit. Fix is disabled
-  when Hunspell has no suggestion. Ignore applies sheet-wide at once (see the
+  (`WordSuggestion`) with **Fix** and **Ignore**. Capitalisations share one row
+  ("Trés" and "trés"). Fix calls
+  `replaceWord(draft, key, (word) => issueReplacement(issue, word))` on the
+  draft only: every spelling of the word (whole words) is rewritten with its
+  own case-matched suggestion, then the row hides; Confirm saves it like any
+  edit. Fix is disabled when Hunspell has no suggestion for any spelling. Ignore applies sheet-wide at once (see the
   spellcheck-worker skill); the dialog stays open.
 - Undo history is a stack of **steps** (`EditStep`, an array of `CellEdit`s).
   A manual edit is a one-edit step; a sheet-wide `fixWord` is one step holding

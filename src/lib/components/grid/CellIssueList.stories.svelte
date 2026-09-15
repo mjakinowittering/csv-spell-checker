@@ -10,8 +10,18 @@
         tags: ['autodocs'],
         args: {
             issues: [
-                { key: 'trés', word: 'Trés', suggestion: 'Très' },
-                { key: 'macher', word: 'macher', suggestion: 'mâcher' }
+                {
+                    key: 'trés',
+                    word: 'Trés',
+                    suggestion: 'Très',
+                    replacements: { Trés: 'Très', trés: 'très' }
+                },
+                {
+                    key: 'macher',
+                    word: 'macher',
+                    suggestion: 'mâcher',
+                    replacements: { macher: 'mâcher' }
+                }
             ],
             onfix: fn(),
             onignore: fn()
@@ -23,13 +33,24 @@
 
 <Story
     name="One issue"
-    args={{ issues: [{ key: 'facil', word: 'facil', suggestion: 'facile' }] }}
+    args={{
+        issues: [
+            {
+                key: 'facil',
+                word: 'facil',
+                suggestion: 'facile',
+                replacements: { facil: 'facile' }
+            }
+        ]
+    }}
 />
 
 <Story
     name="No suggestion"
     args={{
-        issues: [{ key: 'xyzzq', word: 'xyzzq', suggestion: null }]
+        issues: [
+            { key: 'xyzzq', word: 'xyzzq', suggestion: null, replacements: {} }
+        ]
     }}
 />
 

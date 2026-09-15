@@ -2,13 +2,13 @@ import { createHunspellFromStrings } from 'hunspell-wasm';
 
 import { isLanguageCode, type LanguageCode } from '$lib/languages/codes';
 
-import {
-    MAX_SUGGESTIONS,
-    type CellFlags,
-    type SpellcheckRequest,
-    type SpellcheckResponse,
-    type WordFlag
+import type {
+    CellFlags,
+    SpellcheckRequest,
+    SpellcheckResponse,
+    WordFlag
 } from './protocol';
+import { suggestionsFor } from './suggestions';
 import { findMisspellings, type WordCheck } from './tokenize';
 
 const PROGRESS_EVERY = 500;
@@ -62,9 +62,9 @@ function loadChecker(language: LanguageCode): Promise<Checker> {
             suggest: (word) => {
                 let result = suggestions.get(word);
                 if (result === undefined) {
-                    result = hunspell
-                        .getSpellingSuggestions(word)
-                        .slice(0, MAX_SUGGESTIONS);
+                    result = suggestionsFor(word, (lookup) =>
+                        hunspell.getSpellingSuggestions(lookup)
+                    );
                     suggestions.set(word, result);
                 }
                 return result;

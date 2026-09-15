@@ -11,7 +11,10 @@
     import { isLanguageCode, type ColumnLanguage } from '$lib/languages/codes';
     import { m } from '$lib/paraglide/messages';
     import { replaceWord } from '$lib/spellcheck/tokenize';
-    import type { CellIssue } from '$lib/workbook/sheet.svelte';
+    import {
+        issueReplacement,
+        type CellIssue
+    } from '$lib/workbook/sheet.svelte';
 
     import CellIssueList from './CellIssueList.svelte';
 
@@ -63,7 +66,10 @@
      */
     function fix(issue: CellIssue) {
         if (issue.suggestion === null) return;
-        draft = replaceWord(draft, issue.key, issue.suggestion);
+        // Every capitalisation of the word, each keeping its own case.
+        draft = replaceWord(draft, issue.key, (word) =>
+            issueReplacement(issue, word)
+        );
         fixed = [...fixed, issue.key];
     }
 

@@ -59,31 +59,40 @@ export function ignoreKey(word: string): string {
 }
 
 /**
- * Replace every word in `text` whose `ignoreKey` is `key` with `replacement`.
+ * Replace every word in `text` whose `ignoreKey` is `key`, whatever its case,
+ * with what `replacementFor` returns for that exact spelling (null leaves it).
  * Whole checkable words only (hyphenated parts count), so a longer word that
- * merely contains it is left alone. A capitalised word gets a capitalised
- * replacement.
+ * merely contains it is left alone.
  */
 export function replaceWord(
     text: string,
     key: string,
-    replacement: string
+    replacementFor: (word: string) => string | null
 ): string {
     let result = '';
     let cursor = 0;
     for (const { word, start, end } of tokenize(text)) {
         if (ignoreKey(word) !== key) continue;
-        result += text.slice(cursor, start) + matchCase(word, replacement);
+        const replacement = replacementFor(word);
+        if (replacement === null) continue;
+        result += text.slice(cursor, start) + replacement;
         cursor = end;
     }
     return result + text.slice(cursor);
 }
 
-function matchCase(word: string, replacement: string): string {
+/**
+ * `replacement` with its first letter upper- or lower-cased to match
+ * `word`'s, for a suggestion that was made for a different spelling.
+ */
+export function matchCase(word: string, replacement: string): string {
     const first = word.charAt(0);
-    return first === first.toLowerCase()
-        ? replacement
-        : replacement.charAt(0).toUpperCase() + replacement.slice(1);
+    const capital = first !== first.toLowerCase();
+    const head = replacement.charAt(0);
+    return (
+        (capital ? head.toUpperCase() : head.toLowerCase()) +
+        replacement.slice(1)
+    );
 }
 
 /** Ranges of the words in `text` that `check` rejects and are not ignored. */

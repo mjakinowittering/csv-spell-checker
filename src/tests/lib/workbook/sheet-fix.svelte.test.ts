@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import type { CellFlags } from '$lib/spellcheck/protocol';
-import { Sheet } from '$lib/workbook/sheet.svelte';
+import { replaceWord } from '$lib/spellcheck/tokenize';
+import { issueReplacement, Sheet } from '$lib/workbook/sheet.svelte';
 
 /** A French sheet with the flags a check of these rows would give. */
 function checkedSheet(rows: string[][], flags: CellFlags[]): Sheet {
@@ -122,8 +123,37 @@ describe('Sheet.fixWord', () => {
             { start: 10, end: 14, suggestions: ['Très'] }
         ]);
         expect(sheet.cellIssues(1, 0)).toEqual([
-            { key: 'trés', word: 'Trés', suggestion: 'Très' }
+            {
+                key: 'trés',
+                word: 'Trés',
+                suggestion: 'Très',
+                replacements: { Trés: 'Très' }
+            }
         ]);
+    });
+
+    it('fixes a spelling with no suggestion of its own from another, keeping its case', () => {
+        const sheet = checkedSheet(
+            [['Note'], ['Trés bien'], ['trés doux']],
+            [
+                {
+                    row: 1,
+                    column: 0,
+                    text: 'Trés bien',
+                    ranges: [{ start: 0, end: 4, suggestions: ['Très'] }]
+                },
+                {
+                    row: 2,
+                    column: 0,
+                    text: 'trés doux',
+                    ranges: [{ start: 0, end: 4, suggestions: [] }]
+                }
+            ]
+        );
+
+        expect(sheet.fixWord('Trés')).toHaveLength(2);
+        expect(sheet.cellValue(1, 0)).toBe('Très bien');
+        expect(sheet.cellValue(2, 0)).toBe('très doux');
     });
 
     it('changes nothing, and records no undo step, without a suggestion', () => {
@@ -142,6 +172,32 @@ describe('Sheet.fixWord', () => {
         expect(sheet.fixWord('xyzzq')).toEqual([]);
         expect(sheet.cellValue(1, 0)).toBe('xyzzq');
         expect(sheet.history.canUndo).toBe(false);
+    });
+
+    it('groups capitalisations into one cell issue, each with its own fix', () => {
+        const sheet = products();
+        const [trés] = sheet.cellIssues(1, 0);
+        expect(trés).toEqual({
+            key: 'trés',
+            word: 'Trés',
+            suggestion: 'Très',
+            replacements: { Trés: 'Très', trés: 'très' }
+        });
+
+        // The editor's Fix, applied to a draft that still holds both.
+        expect(
+            replaceWord('Trés résistant, trés doux', trés.key, (word) =>
+                issueReplacement(trés, word)
+            )
+        ).toBe('Très résistant, très doux');
+        // A spelling typed after the check still gets its case matched.
+        expect(issueReplacement(trés, 'trés')).toBe('très');
+        expect(
+            issueReplacement(
+                { ...trés, replacements: { Trés: 'Très' } },
+                'trés'
+            )
+        ).toBe('très');
     });
 
     it('skips a cell whose text changed since it was checked', () => {

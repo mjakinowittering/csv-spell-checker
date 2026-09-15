@@ -7,7 +7,11 @@ import {
 } from '$lib/languages/codes';
 import type { LanguageGuess } from '$lib/languages/detect';
 import type { CellFlags, WordFlag } from '$lib/spellcheck/protocol';
-import { ignoreKey, type MisspellingRange } from '$lib/spellcheck/tokenize';
+import {
+    ignoreKey,
+    matchCase,
+    type MisspellingRange
+} from '$lib/spellcheck/tokenize';
 
 import { EditHistory, type CellEdit, type EditStep } from './history.svelte';
 
@@ -31,12 +35,33 @@ export type FlaggedWord = {
     suggestion: string | null;
 };
 
-/** A flagged word in one cell, with Hunspell's top suggestion if it has one. */
+/**
+ * A flagged word in one cell, grouped across capitalisations ("Trés" and
+ * "trés" are one issue), with Hunspell's top suggestion if it has one.
+ */
 export type CellIssue = {
     key: string;
+    /** The first spelling found, for display. */
     word: string;
+    /** The suggestion shown for the issue. */
     suggestion: string | null;
+    /** Each spelling found in the cell, mapped to its own top suggestion. */
+    replacements: Record<string, string>;
 };
+
+/**
+ * What Fix writes for one spelling of an issue: that spelling's own
+ * suggestion, or the issue's suggestion with its case matched.
+ */
+export function issueReplacement(
+    issue: CellIssue,
+    word: string
+): string | null {
+    return (
+        issue.replacements[word] ??
+        (issue.suggestion === null ? null : matchCase(word, issue.suggestion))
+    );
+}
 
 /**
  * What is stored for a sheet in IndexedDB (its parsed rows are stored
@@ -74,13 +99,14 @@ function uniformLanguage(
 }
 
 /**
- * Rewrite the chosen flagged ranges with their top suggestion. The remaining
- * ranges are shifted to stay on their words. Null when nothing changed.
+ * Rewrite flagged ranges with what `replacementFor` returns (null keeps the
+ * range). The remaining ranges are shifted to stay on their words. Null when
+ * nothing changed.
  */
 function applyFixes(
     text: string,
     ranges: readonly WordFlag[],
-    shouldFix: (range: WordFlag) => boolean
+    replacementFor: (range: WordFlag) => string | null
 ): { text: string; ranges: WordFlag[] } | null {
     let result = '';
     let cursor = 0;
@@ -88,11 +114,11 @@ function applyFixes(
     let changed = false;
     const kept: WordFlag[] = [];
     for (const range of [...ranges].sort((a, b) => a.start - b.start)) {
-        const suggestion = range.suggestions[0];
+        const replacement = replacementFor(range);
         result += text.slice(cursor, range.start);
-        if (suggestion !== undefined && shouldFix(range)) {
-            result += suggestion;
-            shift += suggestion.length - (range.end - range.start);
+        if (replacement !== null) {
+            result += replacement;
+            shift += replacement.length - (range.end - range.start);
             changed = true;
         } else {
             result += text.slice(range.start, range.end);
@@ -317,9 +343,13 @@ export class Sheet {
             const word = flag.text.slice(start, end);
             const key = ignoreKey(word);
             const suggestion = suggestions[0] ?? null;
-            const issue = issues.get(key);
-            if (issue) issue.suggestion ??= suggestion;
-            else issues.set(key, { key, word, suggestion });
+            let issue = issues.get(key);
+            if (!issue) {
+                issue = { key, word, suggestion, replacements: {} };
+                issues.set(key, issue);
+            }
+            issue.suggestion ??= suggestion;
+            if (suggestion !== null) issue.replacements[word] ??= suggestion;
         }
         return [...issues.values()];
     }
@@ -372,25 +402,46 @@ export class Sheet {
     /**
      * Replace a flagged word with its suggestion everywhere in the sheet, as
      * one undo step. Only flagged occurrences change, and each is a whole word
-     * found by the check, so a longer word containing it is untouched. Each
-     * occurrence takes its own top suggestion, which keeps its capitalisation.
-     * Affected cells are marked edited, and their other flags stay put. The
-     * caller re-checks the sheet in the worker. Returns the edits: none when
-     * no occurrence had a suggestion.
+     * found by the check, so a longer word containing it is untouched. Every
+     * capitalisation is fixed, and each keeps its case: an occurrence takes
+     * its own top suggestion, or, when Hunspell had none for that spelling,
+     * the word's suggestion with the case matched. Affected cells are marked
+     * edited, and their other flags stay put. The caller re-checks the sheet
+     * in the worker. Returns the edits: none when no spelling had a suggestion.
      */
     fixWord(word: string): CellEdit[] {
         const key = ignoreKey(word);
+        const matches = (text: string, { start, end }: WordFlag) =>
+            ignoreKey(text.slice(start, end)) === key;
+
+        let fallback: string | null = null;
+        for (const { text, ranges } of this.#flags.values()) {
+            const found = ranges.find(
+                (range) => matches(text, range) && range.suggestions.length > 0
+            );
+            if (found) {
+                fallback = found.suggestions[0];
+                break;
+            }
+        }
+        if (fallback === null) return [];
+        const groupSuggestion = fallback;
+
         const edits: CellEdit[] = [];
         for (const [cell, flag] of [...this.#flags.entries()]) {
             const { row, column } = parseCellKey(cell);
             // Stale: the cell changed since it was checked.
             if (this.cellValue(row, column) !== flag.text) continue;
-            const fixed = applyFixes(
-                flag.text,
-                flag.ranges,
-                ({ start, end }) =>
-                    ignoreKey(flag.text.slice(start, end)) === key
-            );
+            const fixed = applyFixes(flag.text, flag.ranges, (range) => {
+                if (!matches(flag.text, range)) return null;
+                return (
+                    range.suggestions[0] ??
+                    matchCase(
+                        flag.text.slice(range.start, range.end),
+                        groupSuggestion
+                    )
+                );
+            });
             if (!fixed) continue;
             this.#write(row, column, fixed.text);
             if (fixed.ranges.length > 0) {

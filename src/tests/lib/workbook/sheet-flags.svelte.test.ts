@@ -141,7 +141,12 @@ describe('Sheet ignored words', () => {
         sheet.applySheetFlags([twice]);
         // Flag text is kept, so the words read back as they were checked.
         expect(sheet.cellIssues(2, 1)).toEqual([
-            { key: 'hikking', word: 'Hikking', suggestion: 'hiking' }
+            {
+                key: 'hikking',
+                word: 'Hikking',
+                suggestion: 'hiking',
+                replacements: { hikking: 'hiking' }
+            }
         ]);
         expect(sheet.cellIssues(1, 1)).toEqual([]);
     });
@@ -213,7 +218,12 @@ describe('Sheet ignored words', () => {
         ]);
         sheet.ignoreWord('hikking');
         expect(sheet.cellIssues(1, 1)).toEqual([
-            { key: 'recieves', word: 'Recieves', suggestion: 'Receives' }
+            {
+                key: 'recieves',
+                word: 'Recieves',
+                suggestion: 'Receives',
+                replacements: { Recieves: 'Receives' }
+            }
         ]);
     });
 

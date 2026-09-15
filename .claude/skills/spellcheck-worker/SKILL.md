@@ -129,16 +129,23 @@ The sheet keeps each flagged cell's checked text alongside its ranges, so
 toolbar badge's "Flagged words across this sheet" dialog, deduplicated with
 counts) read the words back exactly as they were flagged.
 
-Every range is a `WordFlag`: `{ start, end, suggestions }`. The worker asks
-`getSpellingSuggestions` for each flagged word (straight apostrophes, top
-`MAX_SUGGESTIONS` = 3, memoised per language because suggestions cost far more
-than checks) and sends them in both `sheet-result` and `cell-result`.
+Every range is a `WordFlag`: `{ start, end, suggestions }`. The worker builds
+each flagged word's list with `suggestionsFor` (`src/lib/spellcheck/suggestions.ts`;
+straight apostrophes, top `MAX_SUGGESTIONS` = 3, memoised per language because
+suggestions cost far more than checks) and sends them in both `sheet-result`
+and `cell-result`. Hunspell gives lowercase words poor suggestions ("trés" →
+trais, but "Trés" → Très), so a lowercase word is also looked up capitalised,
+and those suggestions come first, lower-cased with `matchCase`. Every
+capitalisation of a word thus gets the same corrections in its own case
+(proper nouns are lower-cased too: "londn" → london).
 `cellIssues()` and `flaggedWords()` expose each word's first available
 suggestion.
 
 `sheet.fixWord(word)` is the sheet-wide Fix: for every flag whose cell still
-holds the checked text, it rewrites each range with that key to its own top
-suggestion (ranges are whole tokens, so "Trésor" is never touched), shifts the
+holds the checked text, it rewrites each range with that key, in every
+capitalisation, to its own top suggestion, or, when that spelling has none,
+the word's first suggestion with `matchCase` applied (ranges are whole tokens,
+so "Trésor" is never touched). It then shifts the
 cell's remaining ranges, marks the cell edited and pushes all the edits as one
 undo step. The page then persists and runs a full `checkSheet`.
 

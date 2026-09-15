@@ -13,11 +13,21 @@
         args: {
             row: 3,
             column: 3,
-            value: 'Trés résistant, idéal pour les chiens qui aiment macher pendant des heures.',
+            value: 'Trés résistant et trés doux, idéal pour les chiens qui aiment macher pendant des heures.',
             language: 'fr',
             issues: [
-                { key: 'trés', word: 'Trés', suggestion: 'Très' },
-                { key: 'macher', word: 'macher', suggestion: 'mâcher' }
+                {
+                    key: 'trés',
+                    word: 'Trés',
+                    suggestion: 'Très',
+                    replacements: { Trés: 'Très', trés: 'très' }
+                },
+                {
+                    key: 'macher',
+                    word: 'macher',
+                    suggestion: 'mâcher',
+                    replacements: { macher: 'mâcher' }
+                }
             ],
             open: true,
             onconfirm: fn(),
@@ -39,7 +49,9 @@
     name="No suggestion for a word"
     args={{
         value: 'Livraison rapide, xyzzq garanti.',
-        issues: [{ key: 'xyzzq', word: 'xyzzq', suggestion: null }]
+        issues: [
+            { key: 'xyzzq', word: 'xyzzq', suggestion: null, replacements: {} }
+        ]
     }}
 />
 
