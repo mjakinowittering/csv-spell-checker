@@ -28,7 +28,7 @@
     import { Spellchecker } from '$lib/spellcheck/spellchecker';
     import type { EditStep } from '$lib/workbook/history.svelte';
     import { importFiles, importPastedText } from '$lib/workbook/importer';
-    import { Sheet } from '$lib/workbook/sheet.svelte';
+    import { Sheet, type CellPosition } from '$lib/workbook/sheet.svelte';
     import { Workbook } from '$lib/workbook/workbook.svelte';
 
     type EditTarget = { sheet: Sheet; row: number; column: number };
@@ -202,8 +202,12 @@
      * Replace a word with its suggestion in every cell as one undo step,
      * then re-check the whole sheet in the worker, as ignoring does.
      */
-    function fixWord(sheet: Sheet, word: string) {
-        if (sheet.fixWord(word).length === 0) return;
+    function fixWord(
+        sheet: Sheet,
+        word: string,
+        cells?: readonly CellPosition[]
+    ) {
+        if (sheet.fixWord(word, cells).length === 0) return;
         persistence.sheetChanged(sheet);
         spellchecker.checkSheet(sheet);
     }
@@ -424,9 +428,10 @@
 <FlaggedWordsDialog
     bind:open={flaggedWordsOpen}
     words={readySheet()?.flaggedWords() ?? []}
-    onfix={(word) => {
+    fixTargets={(word) => readySheet()?.fixTargets(word) ?? []}
+    onfix={(word, cells) => {
         const sheet = readySheet();
-        if (sheet) fixWord(sheet, word);
+        if (sheet) fixWord(sheet, word, cells);
     }}
     onignore={(word) => {
         const sheet = readySheet();

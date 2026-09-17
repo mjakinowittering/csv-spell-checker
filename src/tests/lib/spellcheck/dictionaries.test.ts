@@ -26,7 +26,7 @@ async function misspelled(pkg: string, text: string) {
 }
 
 describe('fallback chain with real dictionaries', { timeout: 60_000 }, () => {
-    it('accepts an English word in a German cell, and flags a Polish one', async () => {
+    it('accepts English and Polish words in a German cell, but not a typo', async () => {
         const hunspellFor = async (pkg: string) =>
             createHunspellFromStrings(
                 readFileSync(`node_modules/${pkg}/index.aff`, 'utf8'),
@@ -35,11 +35,13 @@ describe('fallback chain with real dictionaries', { timeout: 60_000 }, () => {
         const packages: Partial<Record<string, string>> = {
             'en-GB': 'dictionary-en-gb',
             'en-US': 'dictionary-en',
-            nl: 'dictionary-nl'
+            nl: 'dictionary-nl',
+            pl: 'dictionary-pl',
+            cs: 'dictionary-cs'
         };
 
         const matches = await resolveFallbacks(
-            ['waterproof', 'chłonna'],
+            ['waterproof', 'chłonna', 'Hauss'],
             'de',
             async (language) => {
                 const pkg = packages[language];
@@ -50,8 +52,10 @@ describe('fallback chain with real dictionaries', { timeout: 60_000 }, () => {
         );
 
         expect(matches.get('waterproof')).toBe('en-GB');
-        // Polish is not in German's chain, so the word stays flagged.
-        expect(matches.get('chłonna')).toBeNull();
+        // German's neighbours include Polish, so embedded Polish copy passes.
+        expect(matches.get('chłonna')).toBe('pl');
+        // A German typo is not a word in any of them, so it stays flagged.
+        expect(matches.get('Hauss')).toBeNull();
     });
 });
 

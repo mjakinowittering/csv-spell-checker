@@ -210,3 +210,96 @@ describe('Sheet.fixWord', () => {
         expect(sheet.cellValue(2, 1)).toBe('trés très bien');
     });
 });
+
+describe('Sheet.fixTargets', () => {
+    /** Two cells with the same flagged word; the second is mixed-language. */
+    function mixedSheet(): Sheet {
+        const sheet = checkedSheet(
+            [
+                ['Beschreibung'],
+                ['Sehr chłonna Windel'],
+                ['Bardzo chłonna wkładka']
+            ],
+            [
+                {
+                    row: 1,
+                    column: 0,
+                    text: 'Sehr chłonna Windel',
+                    ranges: [{ start: 5, end: 12, suggestions: ['chanson'] }]
+                },
+                {
+                    row: 2,
+                    column: 0,
+                    text: 'Bardzo chłonna wkładka',
+                    ranges: [{ start: 7, end: 14, suggestions: ['chanson'] }]
+                }
+            ]
+        );
+        sheet.applySheetFlags(
+            [
+                {
+                    row: 1,
+                    column: 0,
+                    text: 'Sehr chłonna Windel',
+                    ranges: [{ start: 5, end: 12, suggestions: ['chanson'] }]
+                },
+                {
+                    row: 2,
+                    column: 0,
+                    text: 'Bardzo chłonna wkładka',
+                    ranges: [{ start: 7, end: 14, suggestions: ['chanson'] }]
+                }
+            ],
+            [
+                {
+                    row: 2,
+                    column: 0,
+                    counts: [
+                        ['pl', 2],
+                        ['fr', 1]
+                    ]
+                }
+            ]
+        );
+        return sheet;
+    }
+
+    it('lists every cell a fix would touch, marking the mixed ones', () => {
+        const targets = mixedSheet().fixTargets('chłonna');
+
+        expect(targets).toEqual([
+            {
+                row: 1,
+                column: 0,
+                text: 'Sehr chłonna Windel',
+                languages: ['fr'],
+                mixed: false
+            },
+            {
+                row: 2,
+                column: 0,
+                text: 'Bardzo chłonna wkładka',
+                languages: ['pl', 'fr'],
+                mixed: true
+            }
+        ]);
+    });
+
+    it('rewrites only the cells it is given', () => {
+        const sheet = mixedSheet();
+
+        const edits = sheet.fixWord('chłonna', [{ row: 1, column: 0 }]);
+
+        expect(edits).toHaveLength(1);
+        expect(sheet.cellValue(1, 0)).toBe('Sehr chanson Windel');
+        // The mixed cell is left exactly as it was.
+        expect(sheet.cellValue(2, 0)).toBe('Bardzo chłonna wkładka');
+        expect(sheet.fixTargets('chłonna')).toHaveLength(1);
+    });
+
+    it('still rewrites everything when no cells are given', () => {
+        const sheet = mixedSheet();
+        expect(sheet.fixWord('chłonna')).toHaveLength(2);
+        expect(sheet.cellValue(2, 0)).toBe('Bardzo chanson wkładka');
+    });
+});

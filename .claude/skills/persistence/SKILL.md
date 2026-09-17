@@ -22,11 +22,11 @@ recomputed on load.
 
 ## Database `csv-spell-checker`, version 1
 
-| store      | key       | value                                                                                         |
-| ---------- | --------- | --------------------------------------------------------------------------------------------- |
-| `sheets`   | `id`      | `SheetRecord` — name, source file, phase, languages, ignore list, edit overrides, edited keys |
-| `rows`     | `id`      | the parsed cells. Large, so written **once**, when parsing ends                               |
-| `workbook` | `'state'` | tab order, active tab id, upload counter                                                      |
+| store      | key       | value                                                                                                              |
+| ---------- | --------- | ------------------------------------------------------------------------------------------------------------------ |
+| `sheets`   | `id`      | `SheetRecord` — name, source file, phase, languages, ignore list, per-cell dismissals, edit overrides, edited keys |
+| `rows`     | `id`      | the parsed cells. Large, so written **once**, when parsing ends                                                    |
+| `workbook` | `'state'` | tab order, active tab id, upload counter                                                                           |
 
 Edits never rewrite `rows`: a cell edit updates the small `sheets` record
 (`overrides` holds `[cellKey, value]` pairs), and the grid state is the parsed
@@ -53,8 +53,13 @@ Every action that changes stored data calls `Persistence` in the same handler:
 | confirm languages          | `sheetChanged(sheet)`         |
 | edit, undo, redo           | `sheetChanged(sheet)`         |
 | rename, ignore-list change | `sheetChanged(sheet)`         |
+| dismiss one occurrence     | `sheetChanged(sheet)`         |
 | switch tab                 | `workbookChanged(workbook)`   |
 | close tab                  | `sheetRemoved(id, workbook)`  |
+
+`dismissedWords` holds instance ignores as `row:column:wordKey` keys, separate
+from the sheet-wide `ignoredWords`; records written before it existed load with
+`?? []`, so no database version bump was needed.
 
 Adding a new user-changeable field means: add it to `SheetRecord`, read it in
 `fromRecord` (with a default for records saved before it existed — the schema is

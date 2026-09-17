@@ -16,8 +16,9 @@ const ENGLISH: readonly LanguageCode[] = ['en-GB', 'en-US'];
 const FAMILIES: readonly (readonly LanguageCode[])[] = [
     ['en-GB', 'en-US'],
     ['fr', 'it', 'es', 'pt-PT', 'pt-BR'],
-    ['de', 'nl'],
-    ['pl', 'cs'],
+    // German, Dutch, Polish and Czech are grouped as neighbours rather than
+    // by descent: Central European product copy mixes them constantly.
+    ['de', 'nl', 'pl', 'cs'],
     ['sv', 'da', 'nb']
 ];
 

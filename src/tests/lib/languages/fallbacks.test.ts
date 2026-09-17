@@ -7,11 +7,11 @@ describe('fallbackChain', () => {
     it.each([
         ['en-GB', ['en-US']],
         ['en-US', ['en-GB']],
-        ['de', ['en-GB', 'en-US', 'nl']],
-        ['nl', ['en-GB', 'en-US', 'de']],
+        ['de', ['en-GB', 'en-US', 'nl', 'pl', 'cs']],
+        ['nl', ['en-GB', 'en-US', 'de', 'pl', 'cs']],
         ['fr', ['en-GB', 'en-US', 'it', 'es', 'pt-PT', 'pt-BR']],
         ['es', ['en-GB', 'en-US', 'fr', 'it', 'pt-PT', 'pt-BR']],
-        ['pl', ['en-GB', 'en-US', 'cs']],
+        ['pl', ['en-GB', 'en-US', 'de', 'nl', 'cs']],
         ['nb', ['en-GB', 'en-US', 'sv', 'da']]
     ] as const)('tries English then %s’s family', (primary, expected) => {
         expect(fallbackChain(primary)).toEqual(expected);

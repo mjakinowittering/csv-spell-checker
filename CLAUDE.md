@@ -40,14 +40,18 @@ Load the relevant skill file when working in that domain. Skills defer to this f
 - Full-sheet spellcheck runs in a Web Worker, never on the main thread.
 - After an edit, only the edited cell is re-checked, not the whole sheet. The exceptions are sheet-wide actions (ignoring a word, fixing a word everywhere, and undoing or redoing such a fix), which re-check the whole sheet in the worker.
 - hunspell-wasm is the only spellcheck engine (Typo.js is gone). Every flagged word carries Hunspell's suggestions (top one plus up to two runners-up) in both `sheet-result` and `cell-result`.
+- A word its cell's language rejects is not flagged until a fallback chain has rejected it too: English first (`en-GB`, `en-US`), then that language's family — Romance (`fr`, `it`, `es`, `pt-PT`, `pt-BR`), Central European (`de`, `nl`, `pl`, `cs`), Nordic (`sv`, `da`, `nb`), and the English pair. The whole chain is tried; its length is the cap.
+- Fallback dictionaries load the first time a word in a sheet needs one — never preloaded — and stay cached in the worker for the session, across cells and sheets.
+- Every check records which languages matched a cell's words. The cell editor's header shows them as flags, the language matching the most words first, and a mixed-language cell is what the bulk-fix safeguard warns about.
 - Suggestions and fixes live only in the cell editor's issues list and the sheet-wide flagged-words dialog, as `word → suggestion` rows. No live squiggles inside the editor textarea and no hover cards over text.
 - Different capitalisations of a flagged word ("Trés", "trés") are one issue row in both the editor and the dialog, and Fix always preserves each occurrence's case (its own suggestion, or the word's suggestion with the first letter's case matched).
-- In the cell editor, Fix rewrites that word in the draft only (whole-word matches); like typing, it is saved by Confirm. Ignore still applies sheet-wide immediately.
-- In the flagged-words dialog, Fix rewrites every flagged occurrence of that word across the sheet immediately (whole words from the check, never substrings; each occurrence takes its own top suggestion). Every affected cell is marked edited, the whole fix is a single undo step (one Undo reverts all of it), the sheet is persisted, and the sheet is re-checked.
+- In the cell editor, Fix rewrites that word in the draft only (whole-word matches); like typing, it is saved by Confirm.
+- In the flagged-words dialog, Fix rewrites every flagged occurrence of that word across the sheet (whole words from the check, never substrings; each occurrence takes its own top suggestion). Every affected cell is marked edited, the whole fix is a single undo step (one Undo reverts all of it), the sheet is persisted, and the sheet is re-checked.
+- A bulk Fix that would touch a cell where another language matched some words asks first: it lists those cells and offers fixing only the single-language cells, or all of them. With no such cell it applies straight away, as before.
 - Edited state is permanent (undo keeps it). An edited cell with no spelling issues shows a green tint and border; a flagged cell always shows its red ring and squiggles instead, edited or not.
 - Grammarly is blocked in the cell editor (`data-gramm`, `data-gramm_editor`, `data-enable-grammarly` set to `false`) unless the user turns on the editor's "Allow Grammarly" switch; that choice is remembered per device in localStorage.
 - Flagged cells show a squiggly underline plus a ring highlight, and this persists after blur.
-- Ignoring a flagged word (from the cell editor's chips or the toolbar's flagged-words dialog) applies to the whole sheet, case-insensitively. It is persisted with the sheet and followed by a full re-check in the worker.
+- Ignoring has two scopes, both case-insensitive. **Ignore** in the cell editor dismisses one occurrence — that word in that cell — which is persisted per sheet, reapplied to every later check result, and needs no re-check. **Ignore All**, in the editor or the flagged-words dialog, adds the word to the sheet's ignore list and runs a full re-check.
 - Language detection runs once per new sheet (upload or paste) on the main thread during the loading step, never in the spellcheck worker. It uses Chrome's `LanguageDetector` when `'LanguageDetector' in self` and its model is available, and Franc otherwise. It samples only the first 10 non-header rows across all columns combined and produces a single sheet-wide guess.
 - Below the confidence threshold (built-in score under 0.7; for Franc, under 100 letters or a top-two score gap under 0.04) nothing is pre-filled and the user must choose.
 - The user must confirm the sheet's language (with optional per-column overrides) before spellcheck starts, every time, no shortcuts.
@@ -58,6 +62,7 @@ Load the relevant skill file when working in that domain. Skills defer to this f
 - All UI copy through shadcn-svelte components; no ad hoc HTML form elements.
 - Every component in `src/lib/components/` (outside `ui/`) has a colocated `*.stories.svelte`. Stories run as tests in both light and dark themes, and an accessibility violation fails the run.
 - Theme defaults to OS-level prefers-color-scheme on first load; manual toggle always available.
+- Opening a sheet selects its first data cell, so the arrow keys move around the grid without clicking first.
 - Status bar is informational only (row count, the selected cell and its column's language); never shows edited-cell counts. It is hidden when no sheet is open; the tab strip and status bar stay anchored at the bottom.
 - Tabs are renamed from their right-click menu (or F2 on a focused tab) through an inline field: Enter or blur saves, Escape cancels, a blank name is ignored. Names persist.
 - A ready sheet's spell-check languages are always visible: flag and code in the toolbar (stacked flags for mixed sheets) and a flag before its tab name.

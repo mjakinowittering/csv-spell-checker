@@ -68,6 +68,19 @@ export function issueReplacement(
 }
 
 /**
+ * One cell a sheet-wide fix would rewrite. `mixed` marks a cell whose words
+ * matched more than one language, where a suggestion from the column's
+ * dictionary is the most likely to be wrong.
+ */
+export type FixTarget = {
+    row: number;
+    column: number;
+    text: string;
+    languages: LanguageCode[];
+    mixed: boolean;
+};
+
+/**
  * What is stored for a sheet in IndexedDB (its parsed rows are stored
  * separately). Spelling flags and undo history are derived and never stored.
  */
@@ -432,17 +445,51 @@ export class Sheet {
     }
 
     /**
-     * Replace a flagged word with its suggestion everywhere in the sheet, as
-     * one undo step. Only flagged occurrences change, and each is a whole word
-     * found by the check, so a longer word containing it is untouched. Every
-     * capitalisation is fixed, and each keeps its case: an occurrence takes
-     * its own top suggestion, or, when Hunspell had none for that spelling,
-     * the word's suggestion with the case matched. Affected cells are marked
-     * edited, and their other flags stay put. The caller re-checks the sheet
-     * in the worker. Returns the edits: none when no spelling had a suggestion.
+     * Every cell a sheet-wide fix of this word would rewrite, in reading
+     * order. The caller warns about the `mixed` ones before applying.
      */
-    fixWord(word: string): CellEdit[] {
+    fixTargets(word: string): FixTarget[] {
         const key = ignoreKey(word);
+        const targets: FixTarget[] = [];
+        for (const [cell, flag] of this.#flags.entries()) {
+            const { row, column } = parseCellKey(cell);
+            if (this.cellValue(row, column) !== flag.text) continue;
+            const hit = flag.ranges.some(
+                ({ start, end }) =>
+                    ignoreKey(flag.text.slice(start, end)) === key
+            );
+            if (!hit) continue;
+            const languages = this.cellLanguages(row, column);
+            targets.push({
+                row,
+                column,
+                text: flag.text,
+                languages,
+                mixed: languages.length > 1
+            });
+        }
+        return targets.sort((a, b) => a.row - b.row || a.column - b.column);
+    }
+
+    /**
+     * Replace a flagged word with its suggestion across the sheet — or only in
+     * `cells`, when the caller has excluded some — as one undo step. Only
+     * flagged occurrences change, and each is a whole word found by the check,
+     * so a longer word containing it is untouched. Every capitalisation is
+     * fixed, and each keeps its case: an occurrence takes its own top
+     * suggestion, or, when Hunspell had none for that spelling, the word's
+     * suggestion with the case matched. Affected cells are marked edited, and
+     * their other flags stay put. The caller re-checks the sheet in the
+     * worker. Returns the edits: none when no spelling had a suggestion.
+     */
+    fixWord(word: string, cells?: readonly CellPosition[]): CellEdit[] {
+        const key = ignoreKey(word);
+        // Local scratch, never rendered: no reactivity needed.
+        // eslint-disable-next-line svelte/prefer-svelte-reactivity
+        const only = cells === undefined ? null : new Set<string>();
+        for (const { row, column } of cells ?? []) {
+            only?.add(cellKey(row, column));
+        }
         const matches = (text: string, { start, end }: WordFlag) =>
             ignoreKey(text.slice(start, end)) === key;
 
@@ -461,6 +508,7 @@ export class Sheet {
 
         const edits: CellEdit[] = [];
         for (const [cell, flag] of [...this.#flags.entries()]) {
+            if (only && !only.has(cell)) continue;
             const { row, column } = parseCellKey(cell);
             // Stale: the cell changed since it was checked.
             if (this.cellValue(row, column) !== flag.text) continue;

@@ -60,15 +60,24 @@ scroll). `snapshot()` merges overrides for export.
   onto the textarea unless the footer's "Allow Grammarly" `Switch` is on. The
   choice is `grammarlyPreference.allowed` (`grammarly-preference.svelte.ts`), a
   device preference in localStorage, not part of any sheet.
+- The dialog header carries `LanguageFlags` for
+  `sheet.cellLanguages(row, column)`: one flag, or a stack when the cell's
+  words matched several languages, most words first.
 - Below the textarea, `CellIssueList` lists the cell's flagged words
   (`sheet.cellIssues`) under "Issues in this cell:" as `word → suggestion` rows
-  (`WordSuggestion`) with **Fix** and **Ignore**. Capitalisations share one row
-  ("Trés" and "trés"). Fix calls
-  `replaceWord(draft, key, (word) => issueReplacement(issue, word))` on the
-  draft only: every spelling of the word (whole words) is rewritten with its
-  own case-matched suggestion, then the row hides; Confirm saves it like any
-  edit. Fix is disabled when Hunspell has no suggestion for any spelling. Ignore applies sheet-wide at once (see the
-  spellcheck-worker skill); the dialog stays open.
+  (`WordSuggestion`). Capitalisations share one row ("Trés" and "trés"), and
+  each row has three actions:
+    - **Fix** rewrites the word in the draft only — every spelling, each with
+      its own case-matched suggestion (`replaceWord` with `issueReplacement`)
+      — then hides the row; Confirm saves it like any edit. Disabled when
+      Hunspell has no suggestion for any spelling.
+    - **Ignore** is the instance scope: `sheet.dismissWord(row, column, word)`
+      drops that word in that cell only.
+    - **Ignore All** is the sheet scope (see the spellcheck-worker skill).
+
+    The dialog stays open for all three. Rows are deliberately roomy
+    (`text-sm/6`, `py-2`): a tight line box clips the wavy underline.
+
 - Undo history is a stack of **steps** (`EditStep`, an array of `CellEdit`s).
   A manual edit is a one-edit step; a sheet-wide `fixWord` is one step holding
   every cell it rewrote, so one Undo reverts it all. The page re-checks one
@@ -77,6 +86,12 @@ scroll). `snapshot()` merges overrides for export.
 - Undo/redo: toolbar buttons and Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z, Ctrl/Cmd+Y — ignored
   while focus is in an editable element or the dialog is open. Undo restores the
   value; the tint stays.
+
+## Opening a sheet
+
+`initGrid` focuses the first data cell a frame after the grid renders, so the
+arrow keys move around immediately. The grid only focuses body cells, so this
+is spreadsheet row 2 (sheet row 1) — the CSV header row cannot take focus.
 
 ## Styling
 

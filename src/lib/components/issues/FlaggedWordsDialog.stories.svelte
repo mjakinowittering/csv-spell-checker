@@ -27,6 +27,7 @@
                 },
                 { key: 'xyzzq', word: 'xyzzq', count: 1, suggestion: null }
             ],
+            fixTargets: () => [],
             onfix: fn(),
             onignore: fn()
         }

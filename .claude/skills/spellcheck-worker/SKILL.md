@@ -107,14 +107,44 @@ below the row. Confirming stores
 
 - `init { dictionaryBase }` — once, when the worker starts.
 - `check-sheet { sheetId, rows, languages, ignoredWords }` → `sheet-progress` …
-  then one `sheet-result { flags }` listing only cells with misspellings.
+  then one `sheet-result { flags, languages }`: flags for cells with
+  misspellings, `languages` for cells where a fallback language matched.
 - `check-cell { sheetId, row, column, text, language, ignoredWords }` →
-  `cell-result { cell }` (empty `ranges` means the cell is now clean).
+  `cell-result { cell, languages }` (empty `ranges` means the cell is now
+  clean; empty `languages` means only the column's language matched).
 - `dictionary-error { language }` — the page shows a toast; those columns stay
   unchecked.
 
 Dictionaries load once per worker and are shared across sheets; checked words
 are memoised per language.
+
+## Fallback languages
+
+A word its cell's language rejects is not flagged yet: it is tried against a
+chain, and flagged only once every language in it has rejected it.
+
+- `fallbackChain(primary)` (`src/lib/languages/fallbacks.ts`) is English first
+  (`en-GB`, `en-US`), then `primary`'s family: Romance (`fr`, `it`, `es`,
+  `pt-PT`, `pt-BR`), Central European (`de`, `nl`, `pl`, `cs` — grouped as
+  neighbours, not by descent, because that copy mixes constantly), Nordic
+  (`sv`, `da`, `nb`), and the English pair. The chain's length is the cap.
+- `resolveFallbacks(words, primary, checkerFor)` (`src/lib/spellcheck/fallback.ts`)
+  walks it, stopping at the first language that accepts each word, and returns
+  the matched language or null. It asks `checkerFor` for a dictionary only
+  while some word is still unmatched, so a fallback loads on first need and
+  never for a sheet whose words all pass. A `checkerFor` returning null (a
+  dictionary that would not load) simply moves to the next language; unlike a
+  chosen column language, it raises no `dictionary-error`.
+- The worker runs it per language, not per cell: `scanCell` splits a cell's
+  words into accepted and rejected, `resolveScans` groups every rejection by
+  primary language, then `cellOutcome` turns what is left into flags and counts.
+  Dictionaries are cached in `checkers` for the worker's life, so a fallback
+  loaded for one sheet is reused by the next.
+- Each result carries `languages`: `CellLanguages` per cell for a sheet check,
+  `[language, count][]` for a single cell, most words first, and only when more
+  than the column's own language matched. `sheet.cellLanguages(row, column)`
+  falls back to the column's language, and drives the editor's header flags and
+  the bulk-fix safeguard's idea of a mixed cell.
 
 ## Ignored words
 
@@ -141,7 +171,13 @@ capitalisation of a word thus gets the same corrections in its own case
 `cellIssues()` and `flaggedWords()` expose each word's first available
 suggestion.
 
-`sheet.fixWord(word)` is the sheet-wide Fix: for every flag whose cell still
+`sheet.fixTargets(word)` lists every cell a sheet-wide Fix would rewrite, each
+marked `mixed` when that cell's words matched more than one language. The
+flagged-words dialog uses it for the safeguard: with no mixed cell it fixes
+straight away, otherwise `BulkFixConfirm` lists them and offers fixing only the
+single-language cells (`fixWord(word, cells)`) or all of them.
+
+`sheet.fixWord(word, cells?)` is the sheet-wide Fix: for every flag whose cell still
 holds the checked text, it rewrites each range with that key, in every
 capitalisation, to its own top suggestion, or, when that spelling has none,
 the word's first suggestion with `matchCase` applied (ranges are whole tokens,
@@ -149,8 +185,15 @@ so "Trésor" is never touched). It then shifts the
 cell's remaining ranges, marks the cell edited and pushes all the edits as one
 undo step. The page then persists and runs a full `checkSheet`.
 
-`sheet.ignoreWord(word)` adds the key and clears that word's ranges from every
-flag at once, so the UI updates immediately. The page then persists the sheet
+Ignoring has two scopes. `sheet.dismissWord(row, column, word)` is the cell
+editor's **Ignore**: it records a `dismissalKey` (`row:column:wordKey`) in
+`sheet.dismissedWords`, drops that word's ranges from that cell, and needs no
+re-check — the word stays flagged everywhere else. Every later result is
+filtered through those dismissals, so a full check cannot bring the occurrence
+back.
+
+`sheet.ignoreWord(word)` is **Ignore All**: it adds the key and clears that
+word's ranges from every flag at once, so the UI updates immediately. The page then persists the sheet
 and runs a full `checkSheet` in the worker with the new list, which is
 authoritative. Every later `check-cell` sends the list too.
 
