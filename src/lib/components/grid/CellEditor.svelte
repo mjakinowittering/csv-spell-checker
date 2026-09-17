@@ -1,4 +1,5 @@
 <script lang="ts">
+    import LanguageFlags from '$lib/components/languages/LanguageFlags.svelte';
     import { Button } from '$lib/components/ui/button';
     import * as Dialog from '$lib/components/ui/dialog';
     import { Label } from '$lib/components/ui/label';
@@ -8,7 +9,11 @@
     import { grammarlyAttributes } from '$lib/editor/grammarly';
     import { grammarlyPreference } from '$lib/editor/grammarly-preference.svelte';
     import { cellReference } from '$lib/grid/coordinates';
-    import { isLanguageCode, type ColumnLanguage } from '$lib/languages/codes';
+    import {
+        isLanguageCode,
+        type ColumnLanguage,
+        type LanguageCode
+    } from '$lib/languages/codes';
     import { m } from '$lib/paraglide/messages';
     import { replaceWord } from '$lib/spellcheck/tokenize';
     import {
@@ -23,6 +28,7 @@
         column,
         value,
         language,
+        languages = [],
         issues = [],
         onconfirm,
         onignoreword,
@@ -34,6 +40,11 @@
         column: number;
         value: string;
         language: ColumnLanguage;
+        /**
+         * The languages this cell was checked in, the one matching the most
+         * words first. Shown as flags beside the title.
+         */
+        languages?: readonly LanguageCode[];
         /** The cell's flagged words and suggestions, as last checked. */
         issues?: readonly CellIssue[];
         onconfirm: (value: string) => void;
@@ -100,9 +111,13 @@
 >
     <Dialog.Content class="sm:max-w-lg">
         <Dialog.Header>
-            <Dialog.Title>
-                {m.editor_title({ cell: cellReference(row, column) })}
-            </Dialog.Title>
+            <!-- The languages this cell's words matched, most words first. -->
+            <div class="flex items-center gap-2">
+                <LanguageFlags {languages} showCode={false} />
+                <Dialog.Title>
+                    {m.editor_title({ cell: cellReference(row, column) })}
+                </Dialog.Title>
+            </div>
         </Dialog.Header>
 
         <!-- Native spellcheck (and extensions like Grammarly) run in here,

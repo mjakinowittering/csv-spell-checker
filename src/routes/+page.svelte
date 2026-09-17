@@ -442,6 +442,7 @@
             column={target.column}
             value={target.sheet.cellValue(target.row, target.column)}
             language={target.sheet.languages[target.column] ?? 'none'}
+            languages={target.sheet.cellLanguages(target.row, target.column)}
             issues={target.sheet.cellIssues(target.row, target.column)}
             onconfirm={confirmEdit}
             onignoreword={(word) => ignoreWord(target.sheet, word)}

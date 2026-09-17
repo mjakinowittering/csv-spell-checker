@@ -515,6 +515,18 @@ export class Sheet {
         );
     }
 
+    /**
+     * The languages a cell's words were checked against, the one matching the
+     * most words first. Until a check records what matched, that is just the
+     * column's own language.
+     */
+    cellLanguages(row: number, column: number): LanguageCode[] {
+        const language = this.languages[column];
+        return language !== undefined && isLanguageCode(language)
+            ? [language]
+            : [];
+    }
+
     /** Flagged cells in reading order: row by row, left to right. */
     flaggedCells(): CellPosition[] {
         return [...this.#flags.keys()]

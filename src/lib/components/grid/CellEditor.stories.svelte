@@ -15,6 +15,7 @@
             column: 3,
             value: 'Trés résistant et trés doux, idéal pour les chiens qui aiment macher pendant des heures.',
             language: 'fr',
+            languages: ['fr'],
             issues: [
                 {
                     key: 'trés',
@@ -65,3 +66,20 @@
 />
 
 <Story name="Column not checked" args={{ language: 'none', issues: [] }} />
+
+<Story
+    name="Words from two languages"
+    args={{
+        value: 'Sehr chłonna und szczelna Windel für die Nacht.',
+        language: 'de',
+        languages: ['de', 'pl'],
+        issues: [
+            {
+                key: 'chłonna',
+                word: 'chłonna',
+                suggestion: 'chanson',
+                replacements: { chłonna: 'chanson' }
+            }
+        ]
+    }}
+/>
