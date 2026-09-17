@@ -11,6 +11,17 @@ export type WordFlag = MisspellingRange & {
 /** The top suggestion plus a couple of runners-up. */
 export const MAX_SUGGESTIONS = 3;
 
+/**
+ * How many of a cell's words each language matched, the language matching the
+ * most first. Only sent for cells where a fallback language matched something,
+ * so a cell without an entry was checked in its column's language alone.
+ */
+export type CellLanguages = {
+    row: number;
+    column: number;
+    counts: [LanguageCode, number][];
+};
+
 /** The misspellings found in one cell, with the exact text that was checked. */
 export type CellFlags = {
     row: number;
@@ -45,7 +56,17 @@ export type SpellcheckRequest =
 export type SpellcheckResponse =
     | { type: 'sheet-progress'; sheetId: string; fraction: number }
     /** Only cells with at least one misspelling are listed. */
-    | { type: 'sheet-result'; sheetId: string; flags: CellFlags[] }
+    | {
+          type: 'sheet-result';
+          sheetId: string;
+          flags: CellFlags[];
+          languages: CellLanguages[];
+      }
     /** `ranges` is empty when the cell is now spelled correctly. */
-    | { type: 'cell-result'; sheetId: string; cell: CellFlags }
+    | {
+          type: 'cell-result';
+          sheetId: string;
+          cell: CellFlags;
+          languages: [LanguageCode, number][];
+      }
     | { type: 'dictionary-error'; sheetId: string; language: LanguageCode };

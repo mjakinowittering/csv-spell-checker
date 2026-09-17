@@ -91,10 +91,10 @@ export class Spellchecker {
                 sheet.setCheckProgress(response.fraction);
                 break;
             case 'sheet-result':
-                sheet.applySheetFlags(response.flags);
+                sheet.applySheetFlags(response.flags, response.languages);
                 break;
             case 'cell-result':
-                sheet.applyCellFlags(response.cell);
+                sheet.applyCellFlags(response.cell, response.languages);
                 break;
             case 'dictionary-error':
                 this.#ondictionaryerror(response.language);

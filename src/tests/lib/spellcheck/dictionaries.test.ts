@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { createHunspellFromStrings } from 'hunspell-wasm';
 import { describe, expect, it } from 'vitest';
 
+import { resolveFallbacks } from '$lib/spellcheck/fallback';
 import { findMisspellings } from '$lib/spellcheck/tokenize';
 
 // The same hunspell-wasm build and dictionaries the worker loads, read from
@@ -23,6 +24,36 @@ async function misspelled(pkg: string, text: string) {
         text.slice(start, end)
     );
 }
+
+describe('fallback chain with real dictionaries', { timeout: 60_000 }, () => {
+    it('accepts an English word in a German cell, and flags a Polish one', async () => {
+        const hunspellFor = async (pkg: string) =>
+            createHunspellFromStrings(
+                readFileSync(`node_modules/${pkg}/index.aff`, 'utf8'),
+                readFileSync(`node_modules/${pkg}/index.dic`, 'utf8')
+            );
+        const packages: Partial<Record<string, string>> = {
+            'en-GB': 'dictionary-en-gb',
+            'en-US': 'dictionary-en',
+            nl: 'dictionary-nl'
+        };
+
+        const matches = await resolveFallbacks(
+            ['waterproof', 'chłonna'],
+            'de',
+            async (language) => {
+                const pkg = packages[language];
+                if (!pkg) return null;
+                const hunspell = await hunspellFor(pkg);
+                return (word: string) => hunspell.testSpelling(word);
+            }
+        );
+
+        expect(matches.get('waterproof')).toBe('en-GB');
+        // Polish is not in German's chain, so the word stays flagged.
+        expect(matches.get('chłonna')).toBeNull();
+    });
+});
 
 describe('real dictionaries', { timeout: 60_000 }, () => {
     it('ranks the likely correction first', async () => {

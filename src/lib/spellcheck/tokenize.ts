@@ -104,7 +104,8 @@ export function findMisspellings(
     return tokenize(text)
         .filter(
             ({ word }) =>
-                !ignored.has(ignoreKey(word)) && !isCorrect(word, check)
+                !ignored.has(ignoreKey(word)) &&
+                !isSpelledCorrectly(word, check)
         )
         .map(({ start, end }) => ({ start, end }));
 }
@@ -117,7 +118,11 @@ function isCheckable(word: string): boolean {
     return letters !== letters.toUpperCase();
 }
 
-function isCorrect(word: string, check: WordCheck): boolean {
+/**
+ * Whether a dictionary accepts a word, allowing for curly apostrophes and
+ * French-style elisions. The per-word check behind every flag.
+ */
+export function isSpelledCorrectly(word: string, check: WordCheck): boolean {
     const normalised = word.replace(/’/g, "'");
     if (check(normalised)) return true;
     const elided = ELISION.exec(normalised);

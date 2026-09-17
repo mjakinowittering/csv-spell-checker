@@ -6,7 +6,11 @@ import {
     type LanguageCode
 } from '$lib/languages/codes';
 import type { LanguageGuess } from '$lib/languages/detect';
-import type { CellFlags, WordFlag } from '$lib/spellcheck/protocol';
+import type {
+    CellFlags,
+    CellLanguages,
+    WordFlag
+} from '$lib/spellcheck/protocol';
 import {
     ignoreKey,
     matchCase,
@@ -215,6 +219,10 @@ export class Sheet {
         string,
         { text: string; ranges: readonly WordFlag[] }
     >();
+
+    // Which languages matched a cell's words, most words first, for cells
+    // where a fallback language matched something. Derived from each check.
+    #cellLanguages = new SvelteMap<string, [LanguageCode, number][]>();
 
     /** Number of flagged cells. */
     issueCount = $derived(this.#flags.size);
@@ -521,6 +529,8 @@ export class Sheet {
      * column's own language.
      */
     cellLanguages(row: number, column: number): LanguageCode[] {
+        const counts = this.#cellLanguages.get(cellKey(row, column));
+        if (counts) return counts.map(([language]) => language);
         const language = this.languages[column];
         return language !== undefined && isLanguageCode(language)
             ? [language]
@@ -544,8 +554,15 @@ export class Sheet {
         if (this.checkState === 'checking') this.checkProgress = fraction;
     }
 
-    /** Replace all flags with a full-sheet result. */
-    applySheetFlags(flags: readonly CellFlags[]) {
+    /** Replace all flags, and the per-cell languages, with a full-sheet result. */
+    applySheetFlags(
+        flags: readonly CellFlags[],
+        languages: readonly CellLanguages[] = []
+    ) {
+        this.#cellLanguages.clear();
+        for (const { row, column, counts } of languages) {
+            this.#cellLanguages.set(cellKey(row, column), counts);
+        }
         for (const key of [...this.#flags.keys()]) {
             if (!this.#changedDuringCheck.has(key)) this.#flags.delete(key);
         }
@@ -566,9 +583,14 @@ export class Sheet {
     }
 
     /** Apply a single-cell re-check, unless the cell has changed since. */
-    applyCellFlags(cell: CellFlags) {
+    applyCellFlags(
+        cell: CellFlags,
+        languages: readonly [LanguageCode, number][] = []
+    ) {
         if (this.cellValue(cell.row, cell.column) !== cell.text) return;
         const key = cellKey(cell.row, cell.column);
+        if (languages.length > 1) this.#cellLanguages.set(key, [...languages]);
+        else this.#cellLanguages.delete(key);
         const ranges = this.#keptRanges(cell.row, cell.column, cell.text, [
             ...cell.ranges
         ]);
