@@ -236,3 +236,71 @@ describe('Sheet ignored words', () => {
         expect(restored.ignoredWords.has('hikking')).toBe(true);
     });
 });
+
+describe('Sheet dismissed words', () => {
+    /** The same misspelling in two cells of the checked column. */
+    function twiceFlagged(): Sheet {
+        const sheet = readySheet();
+        sheet.editCell(2, 1, 'Loves hikking');
+        sheet.beginCheck();
+        sheet.applySheetFlags([
+            hikking,
+            { ...hikking, row: 2, text: 'Loves hikking' }
+        ]);
+        return sheet;
+    }
+
+    it('drops one occurrence and leaves the word flagged elsewhere', () => {
+        const sheet = twiceFlagged();
+
+        expect(sheet.dismissWord(1, 1, 'hikking')).toBe(true);
+
+        expect(sheet.flagRanges(1, 1)).toBeUndefined();
+        expect(sheet.cellIssues(1, 1)).toEqual([]);
+        expect(sheet.flagRanges(2, 1)).toEqual(hikking.ranges);
+        expect(sheet.issueCount).toBe(1);
+        // Instance ignores never touch the sheet-wide list.
+        expect([...sheet.ignoredWords]).toEqual([]);
+        expect(sheet.dismissWord(1, 1, 'hikking')).toBe(false);
+    });
+
+    it('matches the word case-insensitively, in that cell only', () => {
+        const sheet = twiceFlagged();
+        expect(sheet.dismissWord(1, 1, 'HIKKING')).toBe(true);
+        expect(sheet.flagRanges(1, 1)).toBeUndefined();
+        expect(sheet.flagRanges(2, 1)).toEqual(hikking.ranges);
+    });
+
+    it('keeps the occurrence dismissed when the sheet is checked again', () => {
+        const sheet = twiceFlagged();
+        sheet.dismissWord(1, 1, 'hikking');
+
+        sheet.beginCheck();
+        sheet.applySheetFlags([
+            hikking,
+            { ...hikking, row: 2, text: 'Loves hikking' }
+        ]);
+
+        expect(sheet.flagRanges(1, 1)).toBeUndefined();
+        expect(sheet.flagRanges(2, 1)).toEqual(hikking.ranges);
+    });
+
+    it('keeps it dismissed when only that cell is re-checked', () => {
+        const sheet = twiceFlagged();
+        sheet.dismissWord(1, 1, 'hikking');
+        sheet.applyCellFlags(hikking);
+        expect(sheet.flagRanges(1, 1)).toBeUndefined();
+    });
+
+    it('persists dismissals in the sheet record', () => {
+        const sheet = twiceFlagged();
+        sheet.dismissWord(1, 1, 'Hikking');
+        const record = sheet.toRecord();
+        expect(record?.dismissedWords).toEqual(['1:1:hikking']);
+
+        const restored = Sheet.fromRecord(record!, sheet.rows);
+        restored.beginCheck();
+        restored.applySheetFlags([hikking]);
+        expect(restored.flagRanges(1, 1)).toBeUndefined();
+    });
+});

@@ -24,7 +24,8 @@
                 }
             ],
             onfix: fn(),
-            onignore: fn()
+            onignore: fn(),
+            onignoreall: fn()
         }
     });
 </script>

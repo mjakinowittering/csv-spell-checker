@@ -32,6 +32,7 @@
             open: true,
             onconfirm: fn(),
             onignoreword: fn(),
+            ondismissword: fn(),
             onclosed: fn()
         },
         argTypes: {

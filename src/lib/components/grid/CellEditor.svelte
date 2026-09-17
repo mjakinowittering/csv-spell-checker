@@ -26,6 +26,7 @@
         issues = [],
         onconfirm,
         onignoreword,
+        ondismissword,
         onclosed,
         open = $bindable(true)
     }: {
@@ -38,6 +39,8 @@
         onconfirm: (value: string) => void;
         /** Ignore a flagged word across the whole sheet. */
         onignoreword?: (word: string) => void;
+        /** Dismiss one flagged word in this cell only. */
+        ondismissword?: (word: string) => void;
         onclosed: () => void;
         /**
          * Opens with the editor. It always closes through this state, so
@@ -115,11 +118,12 @@
             {...grammarlyAttributes(grammarlyPreference.allowed)}
         />
 
-        {#if onignoreword}
+        {#if onignoreword && ondismissword}
             <CellIssueList
                 issues={openIssues}
                 onfix={fix}
-                onignore={onignoreword}
+                onignore={ondismissword}
+                onignoreall={onignoreword}
             />
         {/if}
 

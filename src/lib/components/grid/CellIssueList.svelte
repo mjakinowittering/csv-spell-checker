@@ -8,14 +8,17 @@
     let {
         issues,
         onfix,
-        onignore
+        onignore,
+        onignoreall
     }: {
         /** The cell's distinct flagged words, each with its top suggestion. */
         issues: readonly CellIssue[];
         /** Accept the suggestion in this cell only. */
         onfix: (issue: CellIssue) => void;
-        /** Ignore a word for the whole sheet. */
+        /** Dismiss this occurrence: the word stays flagged elsewhere. */
         onignore: (word: string) => void;
+        /** Ignore the word for the whole sheet. */
+        onignoreall: (word: string) => void;
     } = $props();
 
     const titleId = $props.id();
@@ -28,9 +31,11 @@
         </span>
         <ul aria-labelledby={titleId} class="divide-y rounded-md border">
             {#each issues as issue (issue.key)}
+                <!-- Roomy rows: a tight line box clips the wavy underline
+                     under the flagged word. -->
                 <li
                     data-issue-word={issue.word}
-                    class="flex items-center gap-2 py-1.5 pr-1.5 pl-3 text-sm"
+                    class="flex items-center gap-2 py-2 pr-1.5 pl-3 text-sm/6"
                 >
                     <div class="min-w-0 flex-1">
                         <WordSuggestion
@@ -61,6 +66,16 @@
                         onclick={() => onignore(issue.word)}
                     >
                         {m.editor_ignore_action()}
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        aria-label={m.editor_ignore_all_word_hint({
+                            word: issue.word
+                        })}
+                        onclick={() => onignoreall(issue.word)}
+                    >
+                        {m.editor_ignore_all_action()}
                     </Button>
                 </li>
             {/each}

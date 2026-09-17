@@ -76,6 +76,11 @@ export type SheetRecord = {
     sheetLanguage: ColumnLanguage | null;
     languages: ColumnLanguage[];
     ignoredWords: string[];
+    /**
+     * Instance ignores, as `dismissalKey()` keys: one word dismissed in one
+     * cell. Distinct from `ignoredWords`, which covers the whole sheet.
+     */
+    dismissedWords: string[];
     /** Edited cell values, as `[cellKey, value]` pairs. */
     overrides: [string, string][];
     /** Keys of every cell ever edited. */
@@ -85,6 +90,15 @@ export type SheetRecord = {
 /** Map key for a cell. Row 0 is the header row. */
 export function cellKey(row: number, column: number): string {
     return `${row}:${column}`;
+}
+
+/** Map key for one word dismissed in one cell, case-insensitively. */
+export function dismissalKey(
+    row: number,
+    column: number,
+    word: string
+): string {
+    return `${row}:${column}:${ignoreKey(word)}`;
 }
 
 /** The one language every column shares, or null when they differ. */
@@ -178,6 +192,12 @@ export class Sheet {
     readonly ignoredWords = new SvelteSet<string>();
 
     /**
+     * Single occurrences dismissed from a cell's issues list: that word, in
+     * that cell only. It stays flagged everywhere else in the sheet.
+     */
+    readonly dismissedWords = new SvelteSet<string>();
+
+    /**
      * Every cell that has ever been edited. Permanent: undo restores a cell's
      * value but never its tint, and error state has no effect on it.
      */
@@ -229,6 +249,9 @@ export class Sheet {
         sheet.sheetLanguage = record.sheetLanguage ?? null;
         sheet.phase = record.phase;
         for (const word of record.ignoredWords) sheet.ignoredWords.add(word);
+        for (const key of record.dismissedWords ?? []) {
+            sheet.dismissedWords.add(key);
+        }
         for (const [key, value] of record.overrides) {
             sheet.#overrides.set(key, value);
         }
@@ -248,6 +271,7 @@ export class Sheet {
             sheetLanguage: this.sheetLanguage,
             languages: [...this.languages],
             ignoredWords: [...this.ignoredWords],
+            dismissedWords: [...this.dismissedWords],
             overrides: [...this.#overrides.entries()],
             edited: [...this.edited]
         };
@@ -455,6 +479,42 @@ export class Sheet {
         return edits;
     }
 
+    /**
+     * Drop one flagged occurrence: this word, in this cell only. It stays
+     * flagged everywhere else, so no re-check is needed — the caller only
+     * persists the sheet. Returns false when it was already dismissed.
+     */
+    dismissWord(row: number, column: number, word: string): boolean {
+        const key = dismissalKey(row, column, word);
+        if (this.dismissedWords.has(key)) return false;
+        this.dismissedWords.add(key);
+        const cell = cellKey(row, column);
+        const flag = this.#flags.get(cell);
+        if (!flag) return true;
+        const ranges = this.#keptRanges(row, column, flag.text, [
+            ...flag.ranges
+        ]);
+        if (ranges.length > 0) this.#flags.set(cell, { ...flag, ranges });
+        else this.#flags.delete(cell);
+        return true;
+    }
+
+    /** A cell's ranges, minus the words dismissed in that cell. */
+    #keptRanges(
+        row: number,
+        column: number,
+        text: string,
+        ranges: WordFlag[]
+    ): WordFlag[] {
+        if (this.dismissedWords.size === 0) return ranges;
+        return ranges.filter(
+            ({ start, end }) =>
+                !this.dismissedWords.has(
+                    dismissalKey(row, column, text.slice(start, end))
+                )
+        );
+    }
+
     /** Flagged cells in reading order: row by row, left to right. */
     flaggedCells(): CellPosition[] {
         return [...this.#flags.keys()]
@@ -482,7 +542,11 @@ export class Sheet {
             if (this.#changedDuringCheck.has(key)) continue;
             // Stale: the cell changed after the worker read it.
             if (this.cellValue(flag.row, flag.column) !== flag.text) continue;
-            this.#flags.set(key, { text: flag.text, ranges: flag.ranges });
+            const ranges = this.#keptRanges(flag.row, flag.column, flag.text, [
+                ...flag.ranges
+            ]);
+            if (ranges.length === 0) continue;
+            this.#flags.set(key, { text: flag.text, ranges });
         }
         this.#changedDuringCheck.clear();
         this.checkState = 'done';
@@ -493,8 +557,11 @@ export class Sheet {
     applyCellFlags(cell: CellFlags) {
         if (this.cellValue(cell.row, cell.column) !== cell.text) return;
         const key = cellKey(cell.row, cell.column);
-        if (cell.ranges.length > 0) {
-            this.#flags.set(key, { text: cell.text, ranges: cell.ranges });
+        const ranges = this.#keptRanges(cell.row, cell.column, cell.text, [
+            ...cell.ranges
+        ]);
+        if (ranges.length > 0) {
+            this.#flags.set(key, { text: cell.text, ranges });
         } else this.#flags.delete(key);
     }
 

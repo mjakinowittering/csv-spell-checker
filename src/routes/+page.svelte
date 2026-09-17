@@ -185,6 +185,20 @@
     }
 
     /**
+     * Dismiss one flagged occurrence: this word, in this cell only. It stays
+     * flagged elsewhere, so the sheet is persisted but not re-checked.
+     */
+    function dismissWord(
+        sheet: Sheet,
+        row: number,
+        column: number,
+        word: string
+    ) {
+        if (!sheet.dismissWord(row, column, word)) return;
+        persistence.sheetChanged(sheet);
+    }
+
+    /**
      * Replace a word with its suggestion in every cell as one undo step,
      * then re-check the whole sheet in the worker, as ignoring does.
      */
@@ -431,6 +445,8 @@
             issues={target.sheet.cellIssues(target.row, target.column)}
             onconfirm={confirmEdit}
             onignoreword={(word) => ignoreWord(target.sheet, word)}
+            ondismissword={(word) =>
+                dismissWord(target.sheet, target.row, target.column, word)}
             onclosed={() => {
                 // A newer edit may already have replaced this one.
                 if (editing === target) editing = null;
