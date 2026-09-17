@@ -98,6 +98,19 @@
             if (row === undefined || index === null) return;
             sheet.selectedCell = { row: Number(row), column: index };
         });
+
+        // Select the sheet's first cell as soon as it opens, so the arrow keys
+        // move around the grid without clicking a cell first. The grid only
+        // focuses body cells, and only once they are rendered — a frame later.
+        const first = data[0];
+        if (!first) return;
+        requestAnimationFrame(() =>
+            gridApi.exec('focus-cell', {
+                row: first.id,
+                column: columnId(0),
+                eventSource: 'navigation'
+            })
+        );
     }
 
     // Issue navigation: bring the current issue into view. Body cells also
@@ -227,5 +240,18 @@
     .sheet-grid :global(.wx-table-box) {
         width: 100% !important;
         box-sizing: border-box;
+    }
+
+    /* SVAR leaves the last column and last row open, relying on the box's own
+       border to close them — which now sits at the container's edge instead.
+       Draw those two edges on the header and data areas, which are exactly as
+       wide as the columns and as tall as the rows. */
+    .sheet-grid :global(.wx-header),
+    .sheet-grid :global(.wx-body) {
+        border-right: var(--wx-table-cell-border);
+    }
+
+    .sheet-grid :global(.wx-body) {
+        border-bottom: var(--wx-table-cell-border);
     }
 </style>
