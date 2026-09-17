@@ -217,4 +217,15 @@
     .sheet-grid :global(.wx-cell:has(> .sheet-cell[data-sheet-row='0'])) {
         background: var(--background);
     }
+
+    /* SVAR sizes its table box to the total column width, which leaves the
+       grid — and its vertical scrollbar — short of the container's right edge
+       unless a column is flexible. Stretch the box instead, so column widths
+       stay as configured and the empty space falls after the last column.
+       Its own width is inline, hence !important, and content-box plus a 1px
+       border would overflow by 2px. */
+    .sheet-grid :global(.wx-table-box) {
+        width: 100% !important;
+        box-sizing: border-box;
+    }
 </style>
