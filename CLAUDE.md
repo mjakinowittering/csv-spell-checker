@@ -70,3 +70,4 @@ Load the relevant skill file when working in that domain. Skills defer to this f
 - Tabs are renamed from their right-click menu (or F2 on a focused tab) through an inline field: Enter or blur saves, Escape cancels, a blank name is ignored. Names persist.
 - A ready sheet's spell-check languages are always visible: flag and code in the toolbar (stacked flags for mixed sheets) and a flag before its tab name.
 - Open sheets persist in IndexedDB (via `idb`): cells and edits, name, languages and ignore list. Every action that changes them writes through immediately — never on a timer or on unload. Spelling flags are never stored; they are recomputed by the worker whenever a sheet is loaded.
+- Closing a tab deletes that sheet's stored data at once, and a sheet whose tab closes while it is still parsing or detecting its language is never stored at all: an import checks the sheet is still open before it reports back.

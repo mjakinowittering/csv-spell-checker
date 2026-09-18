@@ -82,6 +82,10 @@ async function load(
         const rows = await parseInWorker(source, (progress) => {
             sheet.phase = { kind: 'parsing', progress };
         });
+        // Parsing and detection both take a while, and the tab can be closed
+        // while they run. Storing the sheet afterwards would leave a record
+        // the close already deleted, which comes back as a tab on reload.
+        if (!workbook.has(sheet.id)) return;
 
         if (rows.length === 0) {
             workbook.close(sheet.id);
@@ -93,11 +97,15 @@ async function load(
         // Still on the loading screen: sample the sheet for its language.
         sheet.phase = { kind: 'parsing', progress: 1 };
         const guess = await detectLanguage(rows);
+        if (!workbook.has(sheet.id)) return;
+
         // Always ask: no sheet skips language confirmation.
         sheet.phase = { kind: 'confirming', guess };
         onparsed(sheet);
     } catch (error) {
         console.error('Could not parse', displayName, error);
+        // Nothing to say about a tab the user has already closed.
+        if (!workbook.has(sheet.id)) return;
         workbook.close(sheet.id);
         toast.error(m.import_parse_error({ name: displayName }));
     }

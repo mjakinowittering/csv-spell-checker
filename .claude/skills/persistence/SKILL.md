@@ -68,6 +68,13 @@ not versioned per field), and call `sheetChanged` wherever it changes.
 Writes are fire-and-forget in call order; a failure logs with `console.error`
 and shows one toast per session.
 
+A tab can be closed while its file is still parsing or its language is being
+detected, both of which take seconds. `importer.ts` checks `workbook.has(id)`
+after each of those awaits and drops the sheet if it has gone: reporting it
+would call `sheetAdded` **after** `sheetRemoved`, leaving records the close had
+just deleted — and `load()` brings back any sheet that has a record, so the
+closed tab reappeared on the next reload.
+
 ## Restore
 
 `+page.svelte` loads on mount, rebuilds sheets with `Sheet.fromRecord`, and

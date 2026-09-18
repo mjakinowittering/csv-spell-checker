@@ -58,6 +58,11 @@ export class Workbook {
         if (this.sheets.some((sheet) => sheet.id === id)) this.activeId = id;
     }
 
+    /** Whether a sheet is still open: a tab can close while it parses. */
+    has(id: string): boolean {
+        return this.sheets.some((sheet) => sheet.id === id);
+    }
+
     close(id: string) {
         const index = this.sheets.findIndex((sheet) => sheet.id === id);
         if (index === -1) return;
