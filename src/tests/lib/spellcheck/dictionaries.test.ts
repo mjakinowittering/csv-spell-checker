@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { createHunspellFromStrings } from 'hunspell-wasm';
 import { describe, expect, it } from 'vitest';
 
+import { compoundAware } from '$lib/spellcheck/compounds';
 import { resolveFallbacks } from '$lib/spellcheck/fallback';
 import { findMisspellings } from '$lib/spellcheck/tokenize';
 
@@ -24,6 +25,51 @@ async function misspelled(pkg: string, text: string) {
         text.slice(start, end)
     );
 }
+
+describe('German product data', { timeout: 60_000 }, () => {
+    /** The German checker as the worker builds it: compounds included. */
+    async function germanCheck() {
+        const check = await checkerFor('dictionary-de');
+        return compoundAware('de', check);
+    }
+
+    const flags = (text: string, check: (word: string) => boolean) =>
+        findMisspellings(text, check).map(({ start, end }) =>
+            text.slice(start, end)
+        );
+
+    it('leaves a lower-case keyword column alone', async () => {
+        // Amazon keyword columns are written in lower case throughout, which
+        // used to flag every noun in them against a German dictionary.
+        const check = await germanCheck();
+        expect(
+            flags(
+                'hunde, hund, urin, katze, katzen, zecken, ohren, flecken, gerüche, zubehör, reinigung, linderung, haus, stück, wochen',
+                check
+            )
+        ).toEqual([]);
+    });
+
+    it('accepts compounds the dictionary only holds the parts of', async () => {
+        const check = await germanCheck();
+        expect(
+            flags(
+                'Hundewindeln mit Nässeindikator, Taillenumfang und maschinenwaschbarer Einlage: Rüdenwindeln, Welpenunterlagen, Stubenreinheitstraining, Urinflecken, Kautabletten, Trainingsunterlagen, geruchsentferner, hundewindel',
+                check
+            )
+        ).toEqual([]);
+    });
+
+    it('still flags real misspellings, inside a compound or alone', async () => {
+        const check = await germanCheck();
+        expect(
+            flags(
+                'Die Häuser an der Straße, Hauss. Windl, Hundefelcken und Geruchsentfrner.',
+                check
+            )
+        ).toEqual(['Hauss', 'Windl', 'Hundefelcken', 'Geruchsentfrner']);
+    });
+});
 
 describe('fallback chain with real dictionaries', { timeout: 60_000 }, () => {
     it('accepts English and Polish words in a German cell, but not a typo', async () => {

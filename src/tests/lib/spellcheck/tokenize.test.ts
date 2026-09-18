@@ -72,3 +72,21 @@ describe('findMisspellings', () => {
         expect(findMisspellings('Don’t', check)).toEqual([]);
     });
 });
+
+describe('case', () => {
+    // German nouns are capitalised in the dictionary; the data is not.
+    const check = (word: string) => ['Hunde', 'sehr', 'Trés'].includes(word);
+
+    it('accepts a word whatever its capitalisation', () => {
+        expect(findMisspellings('hunde Hunde HUNDE', check)).toEqual([]);
+        expect(findMisspellings('Sehr sehr', check)).toEqual([]);
+    });
+
+    it('still flags a word no capitalisation rescues', () => {
+        expect(
+            findMisspellings('hunde windl', check).map(({ start, end }) =>
+                'hunde windl'.slice(start, end)
+            )
+        ).toEqual(['windl']);
+    });
+});

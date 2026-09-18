@@ -124,7 +124,23 @@ function isCheckable(word: string): boolean {
  */
 export function isSpelledCorrectly(word: string, check: WordCheck): boolean {
     const normalised = word.replace(/’/g, "'");
-    if (check(normalised)) return true;
+    if (acceptedInAnyCase(normalised, check)) return true;
     const elided = ELISION.exec(normalised);
-    return elided !== null && check(elided[1]);
+    return elided !== null && acceptedInAnyCase(elided[1], check);
+}
+
+/**
+ * Whether the dictionary accepts the word in any capitalisation. German
+ * dictionaries hold nouns capitalised, but the data writes them in lower case
+ * — Amazon keyword columns are lower case throughout — which flagged every
+ * noun in them. Capitalisation is not what this app checks, so case alone
+ * never flags a word.
+ */
+function acceptedInAnyCase(word: string, check: WordCheck): boolean {
+    if (check(word)) return true;
+    const first = word.charAt(0);
+    const upper = first.toLocaleUpperCase();
+    if (upper !== first && check(upper + word.slice(1))) return true;
+    const lower = first.toLocaleLowerCase();
+    return lower !== first && check(lower + word.slice(1));
 }

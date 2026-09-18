@@ -72,6 +72,8 @@ Hunspell compiled to WebAssembly (LGPL-2.0, GPL-2.0 or MPL-1.1).
 
 #### Spellcheck
 
+- [ ] **Flag capitalisation as its own kind of issue** — case no longer decides a spelling flag, so a German noun written in lower case in prose ("der hund läuft") passes silently. Add a separate capitalisation check, presented differently from a misspelling, and skippable for the keyword-style columns that are deliberately lower case.
+- [ ] **A fuller German dictionary** — `dictionary-de` holds only ~76k entries and is missing ordinary words (Juckreiz, Läufigkeit, pinkeln, Zahnen, Streu, durchfeuchtet), which is what remains of the German false positives after the case and compound fixes. Consider LibreOffice's `de_DE_frami`, and record the licence and download size it brings.
 - [ ] **Tune when a bulk fix warns** — a cell counts as mixed-language if any word matched a fallback, so one stray English brand word marks an otherwise-German cell as mixed and keeps it out of the safer "single-language cells" fix. Consider a share threshold, or comparing the cell's dominant language with its column's, instead.
 
 #### Tooling

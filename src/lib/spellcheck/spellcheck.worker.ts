@@ -2,6 +2,7 @@ import { createHunspellFromStrings } from 'hunspell-wasm';
 
 import { isLanguageCode, type LanguageCode } from '$lib/languages/codes';
 
+import { compoundAware } from './compounds';
 import { resolveFallbacks } from './fallback';
 import type {
     CellFlags,
@@ -70,18 +71,22 @@ function loadChecker(language: LanguageCode): Promise<Checker> {
         // (Italian, Polish, Czech) in well under a second.
         const hunspell = await createHunspellFromStrings(aff, dic);
         const correct = new Map<string, boolean>();
+        const lookUp = (word: string) => {
+            let result = correct.get(word);
+            if (result === undefined) {
+                result = hunspell.testSpelling(word);
+                correct.set(word, result);
+            }
+            return result;
+        };
+        // Compounds are the language's own, so the wrapping happens here and
+        // every check — the chosen language's and any fallback's — gets it.
+        const check = compoundAware(language, lookUp);
         // Suggestions are far slower than checks, and a sheet repeats the same
         // misspellings, so each word is only ever looked up once.
         const suggestions = new Map<string, string[]>();
         return {
-            check: (word) => {
-                let result = correct.get(word);
-                if (result === undefined) {
-                    result = hunspell.testSpelling(word);
-                    correct.set(word, result);
-                }
-                return result;
-            },
+            check,
             suggest: (word) => {
                 let result = suggestions.get(word);
                 if (result === undefined) {

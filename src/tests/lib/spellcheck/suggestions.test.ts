@@ -13,6 +13,18 @@ function load(pkg: string): Promise<Hunspell> {
 }
 
 describe('suggestionsFor', () => {
+    it('leaves out a suggestion that only changes the word’s case', () => {
+        // Hunspell answers a lower-case German noun with the capitalised
+        // spelling, which would come back case-matched as the word itself.
+        const lists: Record<string, string[]> = {
+            Geruchsentferner: ['Geruchsentferner', 'Geruchsentfernern'],
+            geruchsentferner: []
+        };
+        expect(
+            suggestionsFor('geruchsentferner', (word) => lists[word] ?? [])
+        ).toEqual(['geruchsentfernern']);
+    });
+
     it('merges a capitalised lookup first, deduplicates and keeps three', () => {
         const lists: Record<string, string[]> = {
             Trés: ['Très', 'Prés', 'Trais'],

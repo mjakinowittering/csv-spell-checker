@@ -118,6 +118,35 @@ below the row. Confirming stores
 Dictionaries load once per worker and are shared across sheets; checked words
 are memoised per language.
 
+## Case and compounds
+
+Two things happen before a word is ever handed to the fallback chain, because
+product data breaks a dictionary's assumptions long before another language is
+involved.
+
+- `isSpelledCorrectly` (`tokenize.ts`) accepts a word in **any capitalisation**
+  — as typed, capitalised, and lower-cased. German dictionaries hold nouns
+  capitalised while Amazon keyword columns are lower case throughout, which
+  used to flag every noun in them. This app does not check case; the backlog
+  has a separate capitalisation check.
+- `compoundAware(language, check)` (`compounds.ts`) wraps a checker for `de`,
+  `nl`, `sv`, `da` and `nb`, where compounds are built freely and the
+  dictionary holds only the parts. A rejected word is accepted if it splits
+  into at most three dictionary words, parts of three letters or more, with the
+  linking letters `s`, `es`, `n`, `en`, `e`, `er` allowed on every part but the
+  last. Splitting only runs on words the dictionary rejected, and each result
+  is cached in the closure, so misspellings pay for it and nothing else does.
+  `loadChecker` applies it per language, so chosen and fallback dictionaries
+  both get their own language's compounding.
+- `suggestionsFor` drops a suggestion whose `ignoreKey` equals the word's: for
+  a lower-case noun Hunspell answers with the capitalised spelling, which
+  case-matching turns straight back into the word.
+
+Against a sheet of German product copy, these two took 52 of 66 sampled false
+positives away; what is left is mostly words `dictionary-de` does not have.
+`src/tests/lib/spellcheck/dictionaries.test.ts` guards both against the real
+dictionary — keep the typos in it failing.
+
 ## Fallback languages
 
 A word its cell's language rejects is not flagged yet: it is tried against a

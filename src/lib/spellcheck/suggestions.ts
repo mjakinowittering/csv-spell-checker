@@ -1,10 +1,11 @@
 // Kept free of UI and worker APIs: shared by the spellcheck worker and tests.
 
 import { MAX_SUGGESTIONS } from './protocol';
-import { matchCase } from './tokenize';
+import { ignoreKey, matchCase } from './tokenize';
 
 /**
  * Suggestions for a misspelled word, best first, in the word's own case.
+ * A suggestion that only changes the word's case is left out.
  *
  * Hunspell gives a lowercase word far fewer, and often worse, suggestions than
  * the same word capitalised ("trés" → trais, but "Trés" → Très, Prés, Trais).
@@ -27,6 +28,9 @@ export function suggestionsFor(
 
     const result: string[] = [];
     for (const suggestion of [...capitalised, ...suggest(word)]) {
+        // Hunspell answers a lower-case noun with the capitalised spelling,
+        // which case-matching turns back into the word itself: no fix at all.
+        if (ignoreKey(suggestion) === ignoreKey(word)) continue;
         if (result.includes(suggestion)) continue;
         result.push(suggestion);
         if (result.length === MAX_SUGGESTIONS) break;
